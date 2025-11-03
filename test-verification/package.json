@@ -1,0 +1,15 @@
+{
+  "name": "nexrad-test-verification",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Test verification for NEXRAD Level 2 parser",
+  "main": "test_nodejs.js",
+  "scripts": {
+    "test": "node test_nodejs.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "seek-bzip": "^1.0.6"
+  }
+}

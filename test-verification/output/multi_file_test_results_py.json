@@ -1,0 +1,1797 @@
+[
+  {
+    "success": true,
+    "result": {
+      "test_name": "KCBW_2000",
+      "test_uri": "s3://unidata-nexrad-level2/2000/08/08/KCBW/KCBW20000808_003027.gz",
+      "test_site": "KCBW",
+      "test_date": "2000/08/08",
+      "volume_header": {
+        "tape": "b'ARCHIVE2.'",
+        "extension": "b'360'",
+        "date": 11178,
+        "time": 1826583,
+        "icao": "b'    '"
+      },
+      "vcp_pattern": null,
+      "nscans": 11,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "parse_time_seconds": 9.07,
+      "scan_info": [
+        {
+          "nrays": 367,
+          "ngates": [
+            460
+          ],
+          "gate_spacing": [
+            1000
+          ],
+          "first_gate": [
+            0
+          ],
+          "moments": [
+            "REF"
+          ]
+        },
+        {
+          "nrays": 367,
+          "ngates": [
+            920,
+            920
+          ],
+          "gate_spacing": [
+            250,
+            250
+          ],
+          "first_gate": [
+            -375,
+            -375
+          ],
+          "moments": [
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 367,
+          "ngates": [
+            356
+          ],
+          "gate_spacing": [
+            1000
+          ],
+          "first_gate": [
+            0
+          ],
+          "moments": [
+            "REF"
+          ]
+        },
+        {
+          "nrays": 367,
+          "ngates": [
+            920,
+            920
+          ],
+          "gate_spacing": [
+            250,
+            250
+          ],
+          "first_gate": [
+            -375,
+            -375
+          ],
+          "moments": [
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 367,
+          "ngates": [
+            336,
+            920,
+            920
+          ],
+          "gate_spacing": [
+            1000,
+            250,
+            250
+          ],
+          "first_gate": [
+            0,
+            -375,
+            -375
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 367,
+          "ngates": [
+            268,
+            920,
+            920
+          ],
+          "gate_spacing": [
+            1000,
+            250,
+            250
+          ],
+          "first_gate": [
+            0,
+            -375,
+            -375
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 367,
+          "ngates": [
+            216,
+            860,
+            860
+          ],
+          "gate_spacing": [
+            1000,
+            250,
+            250
+          ],
+          "first_gate": [
+            0,
+            -375,
+            -375
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 367,
+          "ngates": [
+            176,
+            700,
+            700
+          ],
+          "gate_spacing": [
+            1000,
+            250,
+            250
+          ],
+          "first_gate": [
+            0,
+            -375,
+            -375
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 366,
+          "ngates": [
+            110,
+            440,
+            440
+          ],
+          "gate_spacing": [
+            1000,
+            250,
+            250
+          ],
+          "first_gate": [
+            0,
+            -375,
+            -375
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 364,
+          "ngates": [
+            85,
+            340,
+            340
+          ],
+          "gate_spacing": [
+            1000,
+            250,
+            250
+          ],
+          "first_gate": [
+            0,
+            -375,
+            -375
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 362,
+          "ngates": [
+            70,
+            280,
+            280
+          ],
+          "gate_spacing": [
+            1000,
+            250,
+            250
+          ],
+          "first_gate": [
+            0,
+            -375,
+            -375
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        }
+      ],
+      "nrays_per_scan": {
+        "scan_0": 367,
+        "scan_1": 367,
+        "scan_2": 367,
+        "scan_3": 367,
+        "scan_4": 367,
+        "scan_5": 367,
+        "scan_6": 367,
+        "scan_7": 367,
+        "scan_8": 366,
+        "scan_9": 364,
+        "scan_10": 362
+      },
+      "moments_summary": {
+        "REF": {
+          "available": true,
+          "scans_with_data": [
+            0,
+            2,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "num_scans": 9,
+          "data_shape": [
+            4028,
+            460
+          ],
+          "first_gate": 0,
+          "gate_spacing": 1000
+        },
+        "VEL": {
+          "available": false,
+          "error": "'VEL'"
+        },
+        "SW": {
+          "available": false,
+          "error": "'SW'"
+        },
+        "ZDR": {
+          "available": false,
+          "error": "'ZDR'"
+        },
+        "PHI": {
+          "available": false,
+          "error": "'PHI'"
+        },
+        "RHO": {
+          "available": false,
+          "error": "'RHO'"
+        },
+        "CFP": {
+          "available": false,
+          "error": "'CFP'"
+        }
+      },
+      "sample_data": {
+        "REF": [
+          3.5,
+          -7.0,
+          -8.5,
+          -11.5,
+          -7.0
+        ]
+      }
+    }
+  },
+  {
+    "success": true,
+    "result": {
+      "test_name": "KBBX_2016",
+      "test_uri": "s3://unidata-nexrad-level2/2016/12/10/KBBX/KBBX20161210_003057_V06",
+      "test_site": "KBBX",
+      "test_date": "2016/12/10",
+      "volume_header": {
+        "tape": "b'AR2V0006.'",
+        "extension": "b'057'",
+        "date": 17146,
+        "time": 1858000,
+        "icao": "b'KBBX'"
+      },
+      "vcp_pattern": 12,
+      "nscans": 12,
+      "location": [
+        39.49563980102539,
+        -121.6316146850586,
+        67
+      ],
+      "parse_time_seconds": 8.42,
+      "scan_info": [
+        {
+          "nrays": 720,
+          "ngates": [
+            1832,
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "ZDR",
+            "PHI",
+            "RHO"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1832,
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "ZDR",
+            "PHI",
+            "RHO"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1736,
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "ZDR",
+            "PHI",
+            "RHO"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            1552,
+            1192,
+            1192,
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            1336,
+            1192,
+            1192,
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            1176,
+            1176,
+            1176,
+            1176,
+            1176,
+            1176
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            996,
+            996,
+            996,
+            996,
+            996,
+            996
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            832,
+            832,
+            832,
+            832,
+            832,
+            832
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            688,
+            688,
+            688,
+            688,
+            688,
+            688
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO"
+          ]
+        }
+      ],
+      "nrays_per_scan": {
+        "scan_0": 720,
+        "scan_1": 720,
+        "scan_2": 720,
+        "scan_3": 720,
+        "scan_4": 720,
+        "scan_5": 720,
+        "scan_6": 360,
+        "scan_7": 360,
+        "scan_8": 360,
+        "scan_9": 360,
+        "scan_10": 360,
+        "scan_11": 360
+      },
+      "moments_summary": {
+        "REF": {
+          "available": true,
+          "scans_with_data": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "num_scans": 12,
+          "data_shape": [
+            6480,
+            1832
+          ],
+          "first_gate": 2125,
+          "gate_spacing": 250
+        },
+        "VEL": {
+          "available": false,
+          "error": "'VEL'"
+        },
+        "SW": {
+          "available": false,
+          "error": "'SW'"
+        },
+        "ZDR": {
+          "available": true,
+          "scans_with_data": [
+            0,
+            2,
+            4,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "num_scans": 9,
+          "data_shape": [
+            6480,
+            1192
+          ],
+          "first_gate": 2125,
+          "gate_spacing": 250
+        },
+        "PHI": {
+          "available": true,
+          "scans_with_data": [
+            0,
+            2,
+            4,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "num_scans": 9,
+          "data_shape": [
+            6480,
+            1192
+          ],
+          "first_gate": 2125,
+          "gate_spacing": 250
+        },
+        "RHO": {
+          "available": true,
+          "scans_with_data": [
+            0,
+            2,
+            4,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "num_scans": 9,
+          "data_shape": [
+            6480,
+            1192
+          ],
+          "first_gate": 2125,
+          "gate_spacing": 250
+        },
+        "CFP": {
+          "available": false,
+          "error": "'CFP'"
+        }
+      },
+      "sample_data": {
+        "REF": [
+          4.5,
+          8.0,
+          10.5,
+          12.5,
+          15.0
+        ],
+        "ZDR": [
+          6.25,
+          7.25,
+          7.625,
+          7.875,
+          0.0
+        ],
+        "PHI": [
+          196.39645385742188,
+          200.98020935058594,
+          202.39059448242188,
+          203.44839477539062,
+          287.366455078125
+        ],
+        "RHO": [
+          0.5950000286102295,
+          0.6183333396911621,
+          0.6316666603088379,
+          0.6416666507720947,
+          0.6449999809265137
+        ]
+      }
+    }
+  },
+  {
+    "success": true,
+    "result": {
+      "test_name": "KHGX_2022",
+      "test_uri": "s3://unidata-nexrad-level2/2022/03/22/KHGX/KHGX20220322_120125_V06",
+      "test_site": "KHGX",
+      "test_date": "2022/03/22",
+      "volume_header": {
+        "tape": "b'AR2V0006.'",
+        "extension": "b'695'",
+        "date": 19074,
+        "time": 43285512,
+        "icao": "b'KHGX'"
+      },
+      "vcp_pattern": 212,
+      "nscans": 21,
+      "location": [
+        29.471900939941406,
+        -95.0787353515625,
+        34
+      ],
+      "parse_time_seconds": 18.56,
+      "scan_info": [
+        {
+          "nrays": 720,
+          "ngates": [
+            1832,
+            1192,
+            1192,
+            1192,
+            1832
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1832,
+            1192,
+            1192,
+            1192,
+            1832
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1712,
+            1192,
+            1192,
+            1192,
+            1712
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1832,
+            1192,
+            1192,
+            1192,
+            1832
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            1540,
+            1192,
+            1192,
+            1192,
+            1192,
+            1192,
+            1540
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            1336,
+            1192,
+            1192,
+            1192,
+            1192,
+            1192,
+            1336
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            1168,
+            1176,
+            1176,
+            1176,
+            1176,
+            1176,
+            1168
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            988,
+            1000,
+            1000,
+            1000,
+            1000,
+            1000,
+            988
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            832,
+            832,
+            832,
+            832,
+            832,
+            832,
+            832
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1832,
+            1192,
+            1192,
+            1192,
+            1832
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 720,
+          "ngates": [
+            1192,
+            1192,
+            1192
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            688,
+            688,
+            688,
+            688,
+            688,
+            688,
+            688
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            540,
+            540,
+            540,
+            540,
+            540,
+            540,
+            540
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            460,
+            460,
+            460,
+            460,
+            460,
+            460,
+            460
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            376,
+            376,
+            376,
+            376,
+            376,
+            376,
+            376
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            304,
+            304,
+            304,
+            304,
+            304,
+            304,
+            304
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        },
+        {
+          "nrays": 360,
+          "ngates": [
+            244,
+            244,
+            244,
+            244,
+            244,
+            244,
+            244
+          ],
+          "gate_spacing": [
+            250,
+            250,
+            250,
+            250,
+            250,
+            250,
+            250
+          ],
+          "first_gate": [
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125,
+            2125
+          ],
+          "moments": [
+            "REF",
+            "VEL",
+            "SW",
+            "ZDR",
+            "PHI",
+            "RHO",
+            "CFP"
+          ]
+        }
+      ],
+      "nrays_per_scan": {
+        "scan_0": 720,
+        "scan_1": 720,
+        "scan_2": 720,
+        "scan_3": 720,
+        "scan_4": 720,
+        "scan_5": 720,
+        "scan_6": 720,
+        "scan_7": 720,
+        "scan_8": 360,
+        "scan_9": 360,
+        "scan_10": 360,
+        "scan_11": 360,
+        "scan_12": 360,
+        "scan_13": 720,
+        "scan_14": 720,
+        "scan_15": 360,
+        "scan_16": 360,
+        "scan_17": 360,
+        "scan_18": 360,
+        "scan_19": 360,
+        "scan_20": 360
+      },
+      "moments_summary": {
+        "REF": {
+          "available": true,
+          "scans_with_data": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ],
+          "num_scans": 21,
+          "data_shape": [
+            11160,
+            1832
+          ],
+          "first_gate": 2125,
+          "gate_spacing": 250
+        },
+        "VEL": {
+          "available": false,
+          "error": "'VEL'"
+        },
+        "SW": {
+          "available": false,
+          "error": "'SW'"
+        },
+        "ZDR": {
+          "available": true,
+          "scans_with_data": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ],
+          "num_scans": 16,
+          "data_shape": [
+            11160,
+            1192
+          ],
+          "first_gate": 2125,
+          "gate_spacing": 250
+        },
+        "PHI": {
+          "available": true,
+          "scans_with_data": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ],
+          "num_scans": 16,
+          "data_shape": [
+            11160,
+            1192
+          ],
+          "first_gate": 2125,
+          "gate_spacing": 250
+        },
+        "RHO": {
+          "available": true,
+          "scans_with_data": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ],
+          "num_scans": 16,
+          "data_shape": [
+            11160,
+            1192
+          ],
+          "first_gate": 2125,
+          "gate_spacing": 250
+        },
+        "CFP": {
+          "available": true,
+          "scans_with_data": [
+            0,
+            2,
+            4,
+            6,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ],
+          "num_scans": 16,
+          "data_shape": [
+            11160,
+            1832
+          ],
+          "first_gate": 2125,
+          "gate_spacing": 250
+        }
+      },
+      "sample_data": {
+        "REF": [
+          15.5,
+          14.0,
+          7.5,
+          0.0,
+          -0.5
+        ],
+        "ZDR": [
+          -1.15625,
+          -1.03125,
+          2.5625,
+          -6.5,
+          -6.09375
+        ],
+        "PHI": [
+          49.36355972290039,
+          49.36355972290039,
+          230.5983428955078,
+          53.94731903076172,
+          52.53693389892578
+        ],
+        "RHO": [
+          0.8550000190734863,
+          0.8116666674613953,
+          0.2783333361148834,
+          0.7716666460037231,
+          0.7616666555404663
+        ],
+        "CFP": [
+          73.0,
+          32.0,
+          39.0,
+          73.0,
+          73.0
+        ]
+      }
+    }
+  }
+]

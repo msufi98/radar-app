@@ -1,0 +1,1040 @@
+{
+  "volume_header": {
+    "tape": "AR2V0006.",
+    "extension": "695",
+    "date": 19074,
+    "time": 43285512,
+    "icao": "KHGX"
+  },
+  "vcp_pattern": 212,
+  "nscans": 21,
+  "location": {
+    "lat": 29.471900939941406,
+    "lon": -95.0787353515625,
+    "height": 5
+  },
+  "vcp": {
+    "pattern_number": 212,
+    "num_cuts": 21,
+    "doppler_vel_res": 2,
+    "pulse_width": 2
+  },
+  "total_radials": 11160,
+  "message_type": "31",
+  "scan_info": [
+    {
+      "moments": [
+        "REF",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 1832,
+        "ZDR": 1192,
+        "PHI": 1192,
+        "RHO": 1192,
+        "CFP": 1832
+      },
+      "nrays": 720,
+      "gate_spacing": {
+        "REF": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW"
+      ],
+      "ngates": {
+        "REF": 1192,
+        "VEL": 1192,
+        "SW": 1192
+      },
+      "nrays": 720,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 1832,
+        "ZDR": 1192,
+        "PHI": 1192,
+        "RHO": 1192,
+        "CFP": 1832
+      },
+      "nrays": 720,
+      "gate_spacing": {
+        "REF": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW"
+      ],
+      "ngates": {
+        "REF": 1192,
+        "VEL": 1192,
+        "SW": 1192
+      },
+      "nrays": 720,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 1712,
+        "ZDR": 1192,
+        "PHI": 1192,
+        "RHO": 1192,
+        "CFP": 1712
+      },
+      "nrays": 720,
+      "gate_spacing": {
+        "REF": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW"
+      ],
+      "ngates": {
+        "REF": 1192,
+        "VEL": 1192,
+        "SW": 1192
+      },
+      "nrays": 720,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 1832,
+        "ZDR": 1192,
+        "PHI": 1192,
+        "RHO": 1192,
+        "CFP": 1832
+      },
+      "nrays": 720,
+      "gate_spacing": {
+        "REF": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW"
+      ],
+      "ngates": {
+        "REF": 1192,
+        "VEL": 1192,
+        "SW": 1192
+      },
+      "nrays": 720,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 1540,
+        "VEL": 1192,
+        "SW": 1192,
+        "ZDR": 1192,
+        "PHI": 1192,
+        "RHO": 1192,
+        "CFP": 1540
+      },
+      "nrays": 360,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 1336,
+        "VEL": 1192,
+        "SW": 1192,
+        "ZDR": 1192,
+        "PHI": 1192,
+        "RHO": 1192,
+        "CFP": 1336
+      },
+      "nrays": 360,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 1168,
+        "VEL": 1176,
+        "SW": 1176,
+        "ZDR": 1176,
+        "PHI": 1176,
+        "RHO": 1176,
+        "CFP": 1168
+      },
+      "nrays": 360,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 988,
+        "VEL": 1000,
+        "SW": 1000,
+        "ZDR": 1000,
+        "PHI": 1000,
+        "RHO": 1000,
+        "CFP": 988
+      },
+      "nrays": 360,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 832,
+        "VEL": 832,
+        "SW": 832,
+        "ZDR": 832,
+        "PHI": 832,
+        "RHO": 832,
+        "CFP": 832
+      },
+      "nrays": 360,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 1832,
+        "ZDR": 1192,
+        "PHI": 1192,
+        "RHO": 1192,
+        "CFP": 1832
+      },
+      "nrays": 720,
+      "gate_spacing": {
+        "REF": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW"
+      ],
+      "ngates": {
+        "REF": 1192,
+        "VEL": 1192,
+        "SW": 1192
+      },
+      "nrays": 720,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 688,
+        "VEL": 688,
+        "SW": 688,
+        "ZDR": 688,
+        "PHI": 688,
+        "RHO": 688,
+        "CFP": 688
+      },
+      "nrays": 360,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 540,
+        "VEL": 540,
+        "SW": 540,
+        "ZDR": 540,
+        "PHI": 540,
+        "RHO": 540,
+        "CFP": 540
+      },
+      "nrays": 360,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 460,
+        "VEL": 460,
+        "SW": 460,
+        "ZDR": 460,
+        "PHI": 460,
+        "RHO": 460,
+        "CFP": 460
+      },
+      "nrays": 360,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 376,
+        "VEL": 376,
+        "SW": 376,
+        "ZDR": 376,
+        "PHI": 376,
+        "RHO": 376,
+        "CFP": 376
+      },
+      "nrays": 360,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 304,
+        "VEL": 304,
+        "SW": 304,
+        "ZDR": 304,
+        "PHI": 304,
+        "RHO": 304,
+        "CFP": 304
+      },
+      "nrays": 360,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    },
+    {
+      "moments": [
+        "REF",
+        "VEL",
+        "SW",
+        "ZDR",
+        "PHI",
+        "RHO",
+        "CFP"
+      ],
+      "ngates": {
+        "REF": 244,
+        "VEL": 244,
+        "SW": 244,
+        "ZDR": 244,
+        "PHI": 244,
+        "RHO": 244,
+        "CFP": 244
+      },
+      "nrays": 359,
+      "gate_spacing": {
+        "REF": 250,
+        "VEL": 250,
+        "SW": 250,
+        "ZDR": 250,
+        "PHI": 250,
+        "RHO": 250,
+        "CFP": 250
+      },
+      "first_gate": {
+        "REF": 2125,
+        "VEL": 2125,
+        "SW": 2125,
+        "ZDR": 2125,
+        "PHI": 2125,
+        "RHO": 2125,
+        "CFP": 2125
+      }
+    }
+  ],
+  "nrays_per_scan": {
+    "scan_0": 720,
+    "scan_1": 720,
+    "scan_2": 720,
+    "scan_3": 720,
+    "scan_4": 720,
+    "scan_5": 720,
+    "scan_6": 720,
+    "scan_7": 720,
+    "scan_8": 360,
+    "scan_9": 360,
+    "scan_10": 360,
+    "scan_11": 360,
+    "scan_12": 360,
+    "scan_13": 720,
+    "scan_14": 720,
+    "scan_15": 360,
+    "scan_16": 360,
+    "scan_17": 360,
+    "scan_18": 360,
+    "scan_19": 360,
+    "scan_20": 359
+  },
+  "target_angles": [
+    0.4833984375,
+    0.4833984375,
+    0.87890625,
+    0.87890625,
+    1.318359375,
+    1.318359375,
+    0.4833984375,
+    0.4833984375,
+    1.8017578125,
+    2.4169921875,
+    3.1201171875,
+    3.9990234375,
+    5.09765625,
+    0.4833984375,
+    0.4833984375,
+    6.416015625,
+    7.998046875,
+    10.01953125,
+    12.48046875,
+    15.6005859375,
+    19.51171875
+  ],
+  "times": {
+    "base_time": "1911-02-07 12:01:25 UTC",
+    "time_offset_sample": [
+      0,
+      0.025,
+      0.05,
+      0.075,
+      0.096
+    ]
+  },
+  "azimuth_angles_sample": [
+    358.21197509765625,
+    358.7255859375,
+    359.263916015625,
+    359.7528076171875,
+    0.24444580078125
+  ],
+  "elevation_angles_sample": [
+    0.3021240234375,
+    0.32958984375,
+    0.3460693359375,
+    0.38177490234375,
+    0.3680419921875
+  ],
+  "nyquist_vel_sample": [
+    8.9,
+    8.9,
+    8.9,
+    8.9,
+    8.9
+  ],
+  "unambiguous_range_sample": [
+    46700,
+    46700,
+    46700,
+    46700,
+    46700
+  ],
+  "moments": {
+    "REF": {
+      "available": true,
+      "scans_with_data": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "max_ngates": 1832,
+      "data_shape": [
+        11159,
+        1832
+      ],
+      "first_gate": 2125,
+      "gate_spacing": 250,
+      "scale": 2,
+      "offset": 66,
+      "data_sample": [
+        null,
+        15.5,
+        14,
+        7.5,
+        null,
+        null,
+        null,
+        null,
+        0,
+        -0.5
+      ],
+      "range_sample": [
+        2125,
+        2375,
+        2625,
+        2875,
+        3125,
+        3375,
+        3625,
+        3875,
+        4125,
+        4375
+      ]
+    },
+    "VEL": {
+      "available": false,
+      "error": "'VEL'"
+    },
+    "SW": {
+      "available": false,
+      "error": "'SW'"
+    },
+    "ZDR": {
+      "available": true,
+      "scans_with_data": [
+        0,
+        2,
+        4,
+        6,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "max_ngates": 1192,
+      "data_shape": [
+        11159,
+        1192
+      ],
+      "first_gate": 2125,
+      "gate_spacing": 250,
+      "scale": 32,
+      "offset": 418,
+      "data_sample": [
+        null,
+        -1.15625,
+        -1.03125,
+        2.5625,
+        null,
+        null,
+        null,
+        null,
+        -6.5,
+        -6.09375
+      ],
+      "range_sample": [
+        2125,
+        2375,
+        2625,
+        2875,
+        3125,
+        3375,
+        3625,
+        3875,
+        4125,
+        4375
+      ]
+    },
+    "PHI": {
+      "available": true,
+      "scans_with_data": [
+        0,
+        2,
+        4,
+        6,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "max_ngates": 1192,
+      "data_shape": [
+        11159,
+        1192
+      ],
+      "first_gate": 2125,
+      "gate_spacing": 250,
+      "scale": 2.8361001014709473,
+      "offset": 2,
+      "data_sample": [
+        null,
+        49.3635608726888,
+        49.3635608726888,
+        230.59834864813197,
+        null,
+        null,
+        null,
+        null,
+        53.947320096581336,
+        52.53693264307594
+      ],
+      "range_sample": [
+        2125,
+        2375,
+        2625,
+        2875,
+        3125,
+        3375,
+        3625,
+        3875,
+        4125,
+        4375
+      ]
+    },
+    "RHO": {
+      "available": true,
+      "scans_with_data": [
+        0,
+        2,
+        4,
+        6,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "max_ngates": 1192,
+      "data_shape": [
+        11159,
+        1192
+      ],
+      "first_gate": 2125,
+      "gate_spacing": 250,
+      "scale": 300,
+      "offset": -60.5,
+      "data_sample": [
+        null,
+        0.855,
+        0.8116666666666666,
+        0.2783333333333333,
+        null,
+        null,
+        null,
+        null,
+        0.7716666666666666,
+        0.7616666666666667
+      ],
+      "range_sample": [
+        2125,
+        2375,
+        2625,
+        2875,
+        3125,
+        3375,
+        3625,
+        3875,
+        4125,
+        4375
+      ]
+    }
+  }
+}

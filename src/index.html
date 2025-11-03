@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NEXRAD Level 2 Radar Data Viewer - Interactive map-based radar site and data selection">
+    <title>NEXRAD Radar Viewer</title>
+</head>
+<body>
+    <!-- Full-screen Map Container -->
+    <div id="map" role="application" aria-label="Interactive map of NEXRAD radar sites"></div>
+
+    <!-- Header -->
+    <header class="app-header">
+        <h1 class="app-title">NEXRAD Level 2 Radar Viewer</h1>
+    </header>
+
+    <!-- Site Search Panel (Floating Top-Left) -->
+    <aside class="panel panel--search" aria-label="Radar site search">
+        <div class="panel__content">
+            <div class="search-header">
+                <label for="siteSearch" class="panel__label">Search Radar Sites</label>
+                <button
+                    id="resetBtn"
+                    class="btn btn--reset"
+                    title="Reset all filters and selections"
+                    aria-label="Reset all filters and selections"
+                >
+                    Reset
+                </button>
+            </div>
+            <input
+                type="text"
+                id="siteSearch"
+                class="input input--search"
+                placeholder="Search by code, name, or state..."
+                aria-describedby="searchHelp"
+            >
+            <div id="selectedSite" class="site-selection" role="status" aria-live="polite"></div>
+        </div>
+    </aside>
+
+    <!-- Date & Time Selection Panel (Floating Right) -->
+    <aside class="panel panel--datetime" aria-label="Date and time selection">
+        <div class="panel__content">
+            <h2 class="panel__heading">Select Date & Time</h2>
+
+            <!-- Date Selectors -->
+            <div class="date-selectors">
+                <div class="input-group">
+                    <label for="yearSelect" class="input-group__label">Year</label>
+                    <select id="yearSelect" class="select" aria-required="true">
+                        <option value="">Select Year</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="monthSelect" class="input-group__label">Month</label>
+                    <select id="monthSelect" class="select" disabled aria-required="true">
+                        <option value="">Select Month</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="daySelect" class="input-group__label">Day</label>
+                    <select id="daySelect" class="select" disabled aria-required="true">
+                        <option value="">Select Day</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="dataStatus" class="status-message" role="alert" aria-live="polite"></div>
+
+            <!-- Time Selector -->
+            <section id="timeSelector" class="time-selector" style="display: none;" aria-label="Available scan times">
+                <h3 class="time-selector__heading">Available Times</h3>
+                <div id="timesList" class="times-grid"></div>
+            </section>
+
+            <!-- Proceed Button -->
+            <button
+                id="proceedBtn"
+                class="btn btn--primary btn--full"
+                disabled
+                aria-label="View radar data for selected site, date, and time"
+            >
+                View Radar Data
+            </button>
+        </div>
+    </aside>
+
+    <!-- Google Maps API Loader -->
+    <script>
+        (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+            key: "AIzaSyA5Lz7efVijEPENVUhJBIPY_718UehmL_U",
+            v: "beta"
+        });
+    </script>
+</body>
+</html>
