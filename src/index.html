@@ -40,6 +40,22 @@
         </div>
     </aside>
 
+    <!-- Reflectivity Legend (Floating Bottom-Left) -->
+    <aside id="reflectivityLegend" class="legend" style="display: none;" aria-label="Reflectivity scale legend">
+        <div class="legend__content">
+            <h3 class="legend__title">Reflectivity (dBZ)</h3>
+            <div class="legend__scale-container">
+                <canvas id="legendCanvas" class="legend__canvas"></canvas>
+                <svg id="legendTicks" class="legend__ticks"></svg>
+            </div>
+            <div class="legend__labels">
+                <span class="legend__label legend__label--min" id="legendMin"></span>
+                <span class="legend__label legend__label--mid" id="legendMid"></span>
+                <span class="legend__label legend__label--max" id="legendMax"></span>
+            </div>
+        </div>
+    </aside>
+
     <!-- Date & Time Selection Panel (Floating Right) -->
     <aside class="panel panel--datetime" aria-label="Date and time selection">
         <div class="panel__content">

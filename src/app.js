@@ -983,6 +983,9 @@ function hideRadarControls() {
     step2Content.style.display = 'none';
     step2Header.querySelector('.accordion-header__icon').textContent = '▼'; // Down when collapsed
 
+    // Hide legend
+    hideLegend();
+
     // Clear range rings and crosshair
     rangeRings.forEach(ring => ring.setMap(null));
     rangeRings = [];
@@ -1077,6 +1080,9 @@ function resetFilters() {
         step2Content.style.display = 'none';
         step2Header.querySelector('.accordion-header__icon').textContent = '▼'; // Down when collapsed
     }
+
+    // Hide legend
+    hideLegend();
 
     // Clear range rings and crosshair
     rangeRings.forEach(ring => ring.setMap(null));
@@ -1266,6 +1272,86 @@ async function displayRadarHeatmap(scanIndex, resolution) {
         <strong>Gates:</strong> ${ngates}<br>
         <strong>Reflectivity:</strong> ${minVal.toFixed(1)} to ${maxVal.toFixed(1)} dBZ
     `;
+
+    // Show and update the legend
+    updateLegend(minVal, maxVal);
+}
+
+/**
+ * Update the reflectivity legend with a continuous color ramp
+ * @param {number} minVal - Minimum reflectivity value in dBZ
+ * @param {number} maxVal - Maximum reflectivity value in dBZ
+ */
+function updateLegend(minVal, maxVal) {
+    const legendElement = document.getElementById('reflectivityLegend');
+    const canvas = document.getElementById('legendCanvas');
+    const ticksSvg = document.getElementById('legendTicks');
+    const minLabel = document.getElementById('legendMin');
+    const midLabel = document.getElementById('legendMid');
+    const maxLabel = document.getElementById('legendMax');
+
+    // Show the legend
+    legendElement.style.display = 'block';
+
+    // Calculate midpoint
+    const midVal = (minVal + maxVal) / 2;
+
+    // Update labels
+    minLabel.textContent = minVal.toFixed(0);
+    midLabel.textContent = midVal.toFixed(0);
+    maxLabel.textContent = maxVal.toFixed(0);
+
+    // Set canvas size (use high DPI for crisp rendering)
+    const dpr = window.devicePixelRatio || 1;
+    const width = 200;
+    const height = 20;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // Draw continuous color gradient
+    for (let x = 0; x < width; x++) {
+        const normalizedValue = x / (width - 1);
+        const color = valueToRainbowColor(normalizedValue);
+
+        ctx.fillStyle = color;
+        ctx.fillRect(x, 0, 1, height);
+    }
+
+    // Draw tick marks using SVG
+    ticksSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    ticksSvg.innerHTML = '';
+
+    const tickPositions = [
+        { x: 0, label: 'min' },
+        { x: width / 2, label: 'mid' },
+        { x: width, label: 'max' }
+    ];
+
+    tickPositions.forEach(tick => {
+        // Create tick line
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', tick.x);
+        line.setAttribute('y1', height);
+        line.setAttribute('x2', tick.x);
+        line.setAttribute('y2', height + 6);
+        line.setAttribute('stroke', '#718096');
+        line.setAttribute('stroke-width', '1.5');
+        line.setAttribute('stroke-linecap', 'round');
+        ticksSvg.appendChild(line);
+    });
+}
+
+/**
+ * Hide the reflectivity legend
+ */
+function hideLegend() {
+    const legendElement = document.getElementById('reflectivityLegend');
+    legendElement.style.display = 'none';
 }
 
 // Setup radar control event handlers
