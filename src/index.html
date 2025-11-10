@@ -139,6 +139,44 @@
                 </div>
             </div>
 
+            <!-- Accordion: Step 3 - Precipitation Data -->
+            <div class="accordion-section" data-step="3">
+                <button class="accordion-header" id="step3Header" aria-expanded="false">
+                    <span class="accordion-header__title">
+                        <span class="accordion-header__step">Step 3:</span>
+                        <span class="accordion-header__text">Precipitation Data</span>
+                    </span>
+                    <span class="accordion-header__icon">▼</span>
+                </button>
+
+                <div class="accordion-content" id="step3Content" style="display: none;">
+                    <div class="zoom-controls">
+                        <div class="input-group">
+                            <label for="zoomPercentage" class="input-group__label">Zoom Area (% of radar circle)</label>
+                            <div class="zoom-percentage-display">
+                                <span id="zoomPercentageValue">4</span>%
+                            </div>
+                            <div class="zoom-hint">Use mouse wheel to adjust (2-10%)</div>
+                        </div>
+                    </div>
+
+                    <div id="precipitationStatus" class="status-message info" style="display: block;">
+                        <span class="info-icon">ℹ</span> Hover over the radar area to view detailed precipitation data
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </aside>
+
+    <!-- Zoom Window (Top-Right Corner) -->
+    <aside id="zoomWindow" class="zoom-window" style="display: none;" aria-label="Detailed precipitation view">
+        <div class="zoom-window__header">
+            <h3 class="zoom-window__title">Detail View</h3>
+            <div class="zoom-window__coords" id="zoomCoords"></div>
+        </div>
+        <div class="zoom-window__canvas-container">
+            <canvas id="zoomCanvas" class="zoom-window__canvas"></canvas>
         </div>
     </aside>
 

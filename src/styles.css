@@ -717,6 +717,101 @@ body {
 }
 
 /* ============================================
+   Zoom Controls & Precipitation Data (Step 3)
+   ============================================ */
+.zoom-controls {
+  margin-bottom: var(--space-md);
+}
+
+.zoom-percentage-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  background: var(--color-bg-input);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
+  margin-bottom: var(--space-xs);
+}
+
+.zoom-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+  font-style: italic;
+}
+
+.info-icon {
+  display: inline-block;
+  margin-right: var(--space-xs);
+  font-weight: var(--font-weight-semibold);
+  vertical-align: middle;
+  color: var(--color-info);
+}
+
+/* ============================================
+   Zoom Window (Top-Right)
+   ============================================ */
+.zoom-window {
+  position: fixed;
+  top: var(--space-lg);
+  right: calc(380px + var(--space-lg) + var(--space-lg));
+  z-index: var(--z-panel);
+  background: var(--color-bg-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border);
+  width: 300px;
+  transition: all var(--transition-base);
+}
+
+.zoom-window:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+.zoom-window__header {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-input);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.zoom-window__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.zoom-window__coords {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
+
+.zoom-window__canvas-container {
+  padding: var(--space-sm);
+  background: var(--color-bg-panel);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.zoom-window__canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+/* ============================================
    Reflectivity Legend
    ============================================ */
 .legend {

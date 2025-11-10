@@ -14,6 +14,15 @@ let rangeRings = []; // Store range ring circles for radar overlay
 let crosshairLines = []; // Store crosshair lines for radar overlay
 let radarOverlay = null; // Store radar heatmap overlay
 
+// Zoom feature variables
+let zoomPercentage = 4; // Default 4% of radar circle area
+let hoverSquare = null; // Polygon overlay for hover indicator
+let hoverRay = null; // Polyline for ray from center to circumference
+let isMouseOverRadar = false;
+let currentHoverLatLng = null;
+let zoomWindowActive = false;
+window.radarFileData = null;
+
 // Initialize S3 client for public access
 const s3Client = new S3Client({
     region: 'us-east-1',
@@ -679,6 +688,65 @@ function calculateDestinationPoint(center, distance, bearing) {
 }
 
 /**
+ * Calculate distance and bearing from center point to target point
+ * @param {Object} center - {lat, lng} of center point
+ * @param {Object} target - {lat, lng} of target point
+ * @returns {Object} {distance: meters, bearing: degrees}
+ */
+function calculateDistanceAndBearing(center, target) {
+    const R = 6371000; // Earth's radius in meters
+    const lat1 = center.lat * Math.PI / 180;
+    const lng1 = center.lng * Math.PI / 180;
+    const lat2 = target.lat * Math.PI / 180;
+    const lng2 = target.lng * Math.PI / 180;
+
+    const dLat = lat2 - lat1;
+    const dLng = lng2 - lng1;
+
+    // Haversine formula for distance
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+
+    // Calculate bearing
+    const y = Math.sin(dLng) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2) -
+              Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+    let bearing = Math.atan2(y, x) * 180 / Math.PI;
+    bearing = (bearing + 360) % 360; // Normalize to 0-360
+
+    return { distance, bearing };
+}
+
+/**
+ * Convert lat/lng to radar polar coordinates (azimuth, range)
+ * @param {Object} latLng - {lat, lng} position
+ * @param {Object} radarCenter - {lat, lng} of radar center
+ * @returns {Object} {azimuth: degrees (0-360), range: meters}
+ */
+function latLngToRadarCoords(latLng, radarCenter) {
+    const { distance, bearing } = calculateDistanceAndBearing(radarCenter, latLng);
+    return {
+        azimuth: bearing,
+        range: distance
+    };
+}
+
+/**
+ * Check if a lat/lng point is inside the radar circle
+ * @param {Object} latLng - {lat, lng} position
+ * @param {Object} radarCenter - {lat, lng} of radar center
+ * @param {number} maxRange - Maximum range in meters
+ * @returns {boolean}
+ */
+function isInsideRadarCircle(latLng, radarCenter, maxRange) {
+    const { distance } = calculateDistanceAndBearing(radarCenter, latLng);
+    return distance <= maxRange;
+}
+
+/**
  * Create crosshair (plus sign) overlay on the map
  * @param {Object} center - {lat, lng} center point
  * @param {number} maxRange - Maximum range in meters (radius of largest circle)
@@ -986,6 +1054,9 @@ function hideRadarControls() {
     // Hide legend
     hideLegend();
 
+    // Disable zoom feature
+    disableZoomFeature();
+
     // Clear range rings and crosshair
     rangeRings.forEach(ring => ring.setMap(null));
     rangeRings = [];
@@ -1084,6 +1155,9 @@ function resetFilters() {
     // Hide legend
     hideLegend();
 
+    // Disable zoom feature
+    disableZoomFeature();
+
     // Clear range rings and crosshair
     rangeRings.forEach(ring => ring.setMap(null));
     rangeRings = [];
@@ -1123,11 +1197,32 @@ async function displayRadarHeatmap(scanIndex, resolution) {
         return;
     }
 
+    // Store current scan index for zoom feature
+    window.currentScanIndex = scanIndex;
+
     const nexradFile = radarData.nexradFile;
     const center = { lat: radarData.site.lat, lng: radarData.site.lon };
     const radarStatusDiv = document.getElementById('radarStatus');
 
     console.log(`Generating heatmap for scan ${scanIndex}, resolution: ${resolution}`);
+
+    // Expand Step 2 & Step 3 simultaneously
+    const step2Header = document.getElementById('step2Header');
+    const step2Content = document.getElementById('step2Content');
+    const step3Header = document.getElementById('step3Header');
+    const step3Content = document.getElementById('step3Content');
+
+    if (step2Header && step2Content) {
+        step2Header.setAttribute('aria-expanded', 'true');
+        step2Content.style.display = 'block';
+        step2Header.querySelector('.accordion-header__icon').textContent = '▲';
+    }
+
+    if (step3Header && step3Content) {
+        step3Header.setAttribute('aria-expanded', 'true');
+        step3Content.style.display = 'block';
+        step3Header.querySelector('.accordion-header__icon').textContent = '▲';
+    }
 
     // Show generating message
     radarStatusDiv.className = 'status-message loading';
@@ -1275,6 +1370,9 @@ async function displayRadarHeatmap(scanIndex, resolution) {
 
     // Show and update the legend
     updateLegend(minVal, maxVal);
+
+    // Enable zoom feature for interactive hover
+    enableZoomFeature();
 }
 
 /**
@@ -1372,6 +1470,242 @@ document.getElementById('scanLevelSelect').addEventListener('change', async (e) 
     await displayRadarHeatmap(scanIndex, resolution);
 });
 
+/**
+ * Enable zoom feature and mouse tracking
+ */
+function enableZoomFeature() {
+    if (!window.radarFileData || zoomWindowActive) return;
+
+    zoomWindowActive = true;
+    const radarCenter = { lat: window.radarFileData.site.lat, lng: window.radarFileData.site.lon };
+    const maxRange = window.radarFileData.maxRange;
+
+    // Add mouse move listener
+    const mouseMoveListener = map.addListener('mousemove', (event) => {
+        const latLng = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+
+        if (isInsideRadarCircle(latLng, radarCenter, maxRange)) {
+            if (!isMouseOverRadar) {
+                isMouseOverRadar = true;
+                document.getElementById('zoomWindow').style.display = 'block';
+            }
+            currentHoverLatLng = latLng;
+            updateHoverIndicators(latLng, radarCenter, maxRange);
+            updateZoomWindow(latLng, radarCenter);
+        } else {
+            if (isMouseOverRadar) {
+                isMouseOverRadar = false;
+                clearHoverIndicators();
+                document.getElementById('zoomWindow').style.display = 'none';
+            }
+        }
+    });
+
+    // Add mouse wheel listener for zoom percentage
+    const wheelListener = map.addListener('wheel', (event) => {
+        if (!isMouseOverRadar) return;
+
+        event.stop(); // Prevent map zoom
+        const delta = event.domEvent.deltaY;
+
+        if (delta < 0) {
+            // Scroll up - increase zoom
+            zoomPercentage = Math.min(10, zoomPercentage + 2);
+        } else {
+            // Scroll down - decrease zoom
+            zoomPercentage = Math.max(2, zoomPercentage - 2);
+        }
+
+        document.getElementById('zoomPercentageValue').textContent = zoomPercentage;
+
+        // Update indicators and zoom window
+        if (currentHoverLatLng) {
+            updateHoverIndicators(currentHoverLatLng, radarCenter, maxRange);
+            updateZoomWindow(currentHoverLatLng, radarCenter);
+        }
+    });
+
+    // Store listeners for cleanup
+    window.zoomListeners = [mouseMoveListener, wheelListener];
+}
+
+/**
+ * Disable zoom feature and clean up
+ */
+function disableZoomFeature() {
+    zoomWindowActive = false;
+    isMouseOverRadar = false;
+    currentHoverLatLng = null;
+
+    clearHoverIndicators();
+    document.getElementById('zoomWindow').style.display = 'none';
+
+    if (window.zoomListeners) {
+        window.zoomListeners.forEach(listener => google.maps.event.removeListener(listener));
+        window.zoomListeners = null;
+    }
+}
+
+/**
+ * Update hover square and ray indicators
+ */
+function updateHoverIndicators(latLng, radarCenter, maxRange) {
+    const { azimuth, range } = latLngToRadarCoords(latLng, radarCenter);
+
+    // Calculate square size based on zoom percentage
+    // zoomPercentage is % of circle area, so side = sqrt(area * percent / 100) * 2
+    const areaFraction = zoomPercentage / 100;
+    const squareRadius = Math.sqrt(Math.PI * maxRange * maxRange * areaFraction) / Math.sqrt(Math.PI);
+    const squareSide = squareRadius * 1.5; // Make it visible
+
+    // Create square corners
+    const squareCorners = [
+        calculateDestinationPoint(latLng, squareSide / Math.sqrt(2), azimuth + 45),
+        calculateDestinationPoint(latLng, squareSide / Math.sqrt(2), azimuth + 135),
+        calculateDestinationPoint(latLng, squareSide / Math.sqrt(2), azimuth + 225),
+        calculateDestinationPoint(latLng, squareSide / Math.sqrt(2), azimuth + 315)
+    ];
+
+    // Update or create square
+    if (hoverSquare) {
+        hoverSquare.setPath(squareCorners);
+    } else {
+        hoverSquare = new google.maps.Polygon({
+            paths: squareCorners,
+            strokeColor: '#ffffff',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#ffffff',
+            fillOpacity: 0.1,
+            map: map,
+            clickable: false,
+            zIndex: 3
+        });
+    }
+
+    // Create ray from center through square to circumference
+    const circumferencePoint = calculateDestinationPoint(radarCenter, maxRange, azimuth);
+
+    if (hoverRay) {
+        hoverRay.setPath([radarCenter, circumferencePoint]);
+    } else {
+        hoverRay = new google.maps.Polyline({
+            path: [radarCenter, circumferencePoint],
+            strokeColor: '#ffffff',
+            strokeOpacity: 0.6,
+            strokeWeight: 2,
+            map: map,
+            clickable: false,
+            zIndex: 2
+        });
+    }
+}
+
+/**
+ * Clear hover indicators
+ */
+function clearHoverIndicators() {
+    if (hoverSquare) {
+        hoverSquare.setMap(null);
+        hoverSquare = null;
+    }
+    if (hoverRay) {
+        hoverRay.setMap(null);
+        hoverRay = null;
+    }
+}
+
+/**
+ * Update zoom window with detailed radar data
+ */
+function updateZoomWindow(latLng, radarCenter) {
+    if (!window.radarFileData) return;
+
+    const { azimuth, range } = latLngToRadarCoords(latLng, radarCenter);
+    const canvas = document.getElementById('zoomCanvas');
+    const coordsDiv = document.getElementById('zoomCoords');
+
+    // Update coordinates display
+    coordsDiv.textContent = `${latLng.lat.toFixed(4)}°, ${latLng.lng.toFixed(4)}° | ${(range / 1000).toFixed(1)} km`;
+
+    // Set canvas size
+    const canvasSize = 280;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvasSize * dpr;
+    canvas.height = canvasSize * dpr;
+    canvas.style.width = canvasSize + 'px';
+    canvas.style.height = canvasSize + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // Clear canvas
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
+
+    // Get radar data
+    const nexradFile = window.radarFileData.nexradFile;
+    const scanIndex = window.currentScanIndex;
+    if (scanIndex === undefined) return;
+
+    const scan = nexradFile.scans[scanIndex];
+    const refData = nexradFile.get_data('REF', scan.ngates, [scanIndex], false)[0];
+    const azimuths = nexradFile.get_azimuth_angles([scanIndex]);
+    const ranges = nexradFile.get_range(scanIndex, 'REF');
+
+    // Calculate zoom area extent
+    const areaFraction = zoomPercentage / 100;
+    const zoomRadius = Math.sqrt(Math.PI * window.radarFileData.maxRange * window.radarFileData.maxRange * areaFraction) / Math.sqrt(Math.PI);
+
+    // Find data cells within zoom area
+    const cellSize = canvasSize / 20; // Show ~20 cells across
+    const cells = [];
+
+    for (let rayIdx = 0; rayIdx < refData.length; rayIdx++) {
+        const rayAz = azimuths[rayIdx];
+        const rayData = refData[rayIdx];
+
+        for (let gateIdx = 0; gateIdx < rayData.length; gateIdx++) {
+            const gateRange = ranges[gateIdx];
+            const value = rayData[gateIdx];
+
+            // Check if this cell is within zoom radius of hover point
+            const cellDist = Math.abs(gateRange - range);
+            const azDiff = Math.min(Math.abs(rayAz - azimuth), 360 - Math.abs(rayAz - azimuth));
+            const azDist = gateRange * Math.sin(azDiff * Math.PI / 180);
+
+            if (cellDist < zoomRadius && azDist < zoomRadius && value !== null && !isNaN(value)) {
+                cells.push({ rayAz, gateRange, value });
+            }
+        }
+    }
+
+    // Draw cells
+    const minVal = Math.min(...cells.map(c => c.value));
+    const maxVal = Math.max(...cells.map(c => c.value));
+
+    cells.forEach(cell => {
+        // Convert polar to canvas coords
+        const relRange = cell.gateRange - range + zoomRadius;
+        const relAz = cell.rayAz - azimuth;
+        const x = canvasSize / 2 + (relRange / zoomRadius) * (canvasSize / 2) * Math.sin(relAz * Math.PI / 180);
+        const y = canvasSize / 2 - (relRange / zoomRadius) * (canvasSize / 2) * Math.cos(relAz * Math.PI / 180);
+
+        // Get color
+        const normalized = (cell.value - minVal) / (maxVal - minVal);
+        const color = valueToRainbowColor(normalized);
+
+        // Draw cell
+        ctx.fillStyle = color;
+        ctx.fillRect(x - cellSize / 2, y - cellSize / 2, cellSize, cellSize);
+
+        // Draw cell border
+        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x - cellSize / 2, y - cellSize / 2, cellSize, cellSize);
+    });
+}
+
 // Accordion toggle functionality
 function toggleAccordion(headerElement, contentElement) {
     const isExpanded = headerElement.getAttribute('aria-expanded') === 'true';
@@ -1396,6 +1730,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const step1Content = document.getElementById('step1Content');
     const step2Header = document.getElementById('step2Header');
     const step2Content = document.getElementById('step2Content');
+    const step3Header = document.getElementById('step3Header');
+    const step3Content = document.getElementById('step3Content');
 
     // Add click handlers for accordion headers
     step1Header.addEventListener('click', () => {
@@ -1404,6 +1740,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     step2Header.addEventListener('click', () => {
         toggleAccordion(step2Header, step2Content);
+    });
+
+    step3Header.addEventListener('click', () => {
+        toggleAccordion(step3Header, step3Content);
     });
 
     // Initialize the app
