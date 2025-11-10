@@ -46,7 +46,7 @@
             <h2 class="panel__heading">Select Date & Time</h2>
 
             <!-- Date Selectors -->
-            <div class="date-selectors">
+            <div id="dateTimeControls" class="date-selectors">
                 <div class="input-group">
                     <label for="yearSelect" class="input-group__label">Year</label>
                     <select id="yearSelect" class="select" aria-required="true">
@@ -85,6 +85,43 @@
             >
                 View Radar Data
             </button>
+
+            <!-- Radar Display Controls (Hidden initially) -->
+            <div id="radarControls" style="display: none;">
+                <h2 class="panel__heading">Radar Display</h2>
+
+                <div class="input-group">
+                    <label for="scanLevelSelect" class="input-group__label">Scan Level (Elevation)</label>
+                    <select id="scanLevelSelect" class="select">
+                        <option value="">Select Scan</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="resolutionSelect" class="input-group__label">Resolution</label>
+                    <select id="resolutionSelect" class="select">
+                        <option value="auto">Auto (Based on Data)</option>
+                        <option value="360">Low Resolution (360 radials)</option>
+                        <option value="720">High Resolution (720 radials)</option>
+                    </select>
+                </div>
+
+                <button
+                    id="displayHeatmapBtn"
+                    class="btn btn--primary btn--full"
+                    aria-label="Display radar heatmap"
+                >
+                    Display Heatmap
+                </button>
+
+                <button
+                    id="backToSelectionBtn"
+                    class="btn btn--secondary btn--full"
+                    aria-label="Back to date/time selection"
+                >
+                    Back to Selection
+                </button>
+            </div>
         </div>
     </aside>
 

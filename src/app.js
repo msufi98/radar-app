@@ -10,6 +10,9 @@ let selectedDate = null;
 let selectedTime = null;
 let infoWindow;
 let availableSites = null; // Store available sites for selected date
+let rangeRings = []; // Store range ring circles for radar overlay
+let crosshairLines = []; // Store crosshair lines for radar overlay
+let radarOverlay = null; // Store radar heatmap overlay
 
 // Initialize S3 client for public access
 const s3Client = new S3Client({
@@ -542,6 +545,168 @@ function updateProceedButton() {
     proceedBtn.disabled = !(selectedSite && selectedDate && selectedTime);
 }
 
+/**
+ * Map a value to rainbow color (violet to red)
+ * @param {number} value - Normalized value between 0 and 1
+ * @returns {string} - RGB color string
+ */
+function valueToRainbowColor(value) {
+    // Clamp value between 0 and 1
+    value = Math.max(0, Math.min(1, value));
+
+    // Map value to hue: 270° (violet) to 0° (red)
+    // We reverse it so 0 = violet, 1 = red
+    const hue = (1 - value) * 270;
+
+    // Convert HSL to RGB
+    const h = hue / 360;
+    const s = 1.0; // Full saturation
+    const l = 0.5; // Medium lightness
+
+    let r, g, b;
+
+    if (s === 0) {
+        r = g = b = l;
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+
+    return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+}
+
+/**
+ * Calculate a point at a given distance and bearing from a center point
+ * @param {Object} center - {lat, lng} starting point
+ * @param {number} distance - Distance in meters
+ * @param {number} bearing - Bearing in degrees (0 = North, 90 = East)
+ * @returns {Object} - {lat, lng} destination point
+ */
+function calculateDestinationPoint(center, distance, bearing) {
+    const R = 6371000; // Earth's radius in meters
+    const lat1 = center.lat * Math.PI / 180;
+    const lng1 = center.lng * Math.PI / 180;
+    const bearingRad = bearing * Math.PI / 180;
+
+    const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(distance / R) +
+        Math.cos(lat1) * Math.sin(distance / R) * Math.cos(bearingRad)
+    );
+
+    const lng2 = lng1 + Math.atan2(
+        Math.sin(bearingRad) * Math.sin(distance / R) * Math.cos(lat1),
+        Math.cos(distance / R) - Math.sin(lat1) * Math.sin(lat2)
+    );
+
+    return {
+        lat: lat2 * 180 / Math.PI,
+        lng: lng2 * 180 / Math.PI
+    };
+}
+
+/**
+ * Create crosshair (plus sign) overlay on the map
+ * @param {Object} center - {lat, lng} center point
+ * @param {number} maxRange - Maximum range in meters (radius of largest circle)
+ */
+function createCrosshair(center, maxRange) {
+    // Clear existing crosshair lines
+    crosshairLines.forEach(line => line.setMap(null));
+    crosshairLines = [];
+
+    // Convert maxRange to approximate degrees
+    // At equator: 1 degree latitude ≈ 111km
+    // Longitude varies by latitude: 1 degree ≈ 111km * cos(lat)
+    const latOffset = (maxRange / 1000) / 111; // Convert meters to degrees
+    const lngOffset = (maxRange / 1000) / (111 * Math.cos(center.lat * Math.PI / 180));
+
+    // Create horizontal line (constant latitude, varying longitude)
+    const horizontalLine = new google.maps.Polyline({
+        path: [
+            { lat: center.lat, lng: center.lng - lngOffset },
+            { lat: center.lat, lng: center.lng + lngOffset }
+        ],
+        strokeColor: '#666666',
+        strokeOpacity: 0.6,
+        strokeWeight: 1.5,
+        geodesic: false,
+        map: map,
+        clickable: false,
+        zIndex: 2
+    });
+
+    // Create vertical line (constant longitude, varying latitude)
+    const verticalLine = new google.maps.Polyline({
+        path: [
+            { lat: center.lat - latOffset, lng: center.lng },
+            { lat: center.lat + latOffset, lng: center.lng }
+        ],
+        strokeColor: '#666666',
+        strokeOpacity: 0.6,
+        strokeWeight: 1.5,
+        geodesic: false,
+        map: map,
+        clickable: false,
+        zIndex: 2
+    });
+
+    crosshairLines.push(verticalLine, horizontalLine);
+    console.log(`Created crosshair overlay centered at (${center.lat.toFixed(4)}, ${center.lng.toFixed(4)})`);
+}
+
+/**
+ * Create range ring circles (bullseye overlay) on the map
+ * @param {Object} center - {lat, lng} center point for the rings
+ * @param {number} maxRange - Maximum range in meters
+ * @param {number} numRings - Number of range rings to create
+ */
+function createRangeRings(center, maxRange, numRings = 5) {
+    // Clear existing range rings
+    rangeRings.forEach(ring => ring.setMap(null));
+    rangeRings = [];
+
+    // Calculate evenly spaced ranges
+    const ranges = [];
+    const interval = maxRange / numRings;
+    for (let i = 1; i <= numRings; i++) {
+        ranges.push(interval * i);
+    }
+
+    console.log(`Creating ${numRings} range rings, max range: ${(maxRange / 1000).toFixed(1)} km`);
+    console.log('Ring distances:', ranges.map(r => `${(r / 1000).toFixed(1)}km`).join(', '));
+
+    // Create concentric circles
+    ranges.forEach((radius, index) => {
+        const circle = new google.maps.Circle({
+            strokeColor: '#666666',
+            strokeOpacity: 0.6,
+            strokeWeight: 1.5,
+            fillColor: 'transparent',
+            fillOpacity: 0,
+            map: map,
+            center: center,
+            radius: radius, // in meters
+            clickable: false,
+            zIndex: 1
+        });
+
+        rangeRings.push(circle);
+    });
+}
+
 document.getElementById('proceedBtn').addEventListener('click', async () => {
     if (selectedSite && selectedDate && selectedTime) {
         await loadRadarData();
@@ -555,6 +720,16 @@ async function loadRadarData() {
     statusDiv.className = 'status-message loading';
     statusDiv.innerHTML = '<span class="spinner"></span> Loading radar data...';
 
+    // Clear all markers from the map
+    markers.forEach(({ marker }) => {
+        marker.map = null;
+    });
+
+    // Zoom map to radar location
+    const radarCenter = { lat: selectedSite.lat, lng: selectedSite.lon };
+    map.setCenter(radarCenter);
+    map.setZoom(8);
+
     // Construct the S3 URI for the file
     const s3Uri = `s3://unidata-nexrad-level2/${selectedDate}/${selectedSite.code}/${selectedTime}`;
 
@@ -567,6 +742,27 @@ async function loadRadarData() {
             storage_options: { anon: true }
         });
 
+        // Get the first scan info to determine range parameters
+        const scanInfo = nexradFile.scan_info([0])[0];
+        const hasReflectivity = scanInfo.moments.includes('REF');
+
+        let maxRange = 230000; // Default to 230km
+
+        if (hasReflectivity) {
+            // Get actual range data from reflectivity
+            const ranges = nexradFile.get_range(0, 'REF');
+            if (ranges && ranges.length > 0) {
+                maxRange = ranges[ranges.length - 1]; // Last range value
+                console.log(`Reflectivity max range: ${(maxRange / 1000).toFixed(1)} km`);
+            }
+        }
+
+        // Create range rings based on actual data range
+        createRangeRings(radarCenter, maxRange, 5);
+
+        // Create crosshair (plus sign) inscribed in largest circle
+        createCrosshair(radarCenter, maxRange);
+
         // Display parsed information
         statusDiv.className = 'status-message success';
         statusDiv.innerHTML = `
@@ -574,7 +770,8 @@ async function loadRadarData() {
             <strong>Site:</strong> ${nexradFile.volumeHeader.icao.trim()}<br>
             <strong>VCP:</strong> ${nexradFile.getVCPPattern()}<br>
             <strong>Scans:</strong> ${nexradFile.nscans}<br>
-            <strong>Radials:</strong> ${nexradFile.radialRecords.length}
+            <strong>Radials:</strong> ${nexradFile.radialRecords.length}<br>
+            <strong>Max Range:</strong> ${(maxRange / 1000).toFixed(1)} km
         `;
 
         // Store the parsed data for the viewer
@@ -582,10 +779,14 @@ async function loadRadarData() {
             site: selectedSite,
             date: selectedDate,
             fileName: selectedTime,
-            nexradFile: nexradFile
+            nexradFile: nexradFile,
+            maxRange: maxRange
         };
 
         console.log('Radar data ready for viewer');
+
+        // Switch to radar display controls
+        showRadarControls(nexradFile);
 
     } catch (error) {
         console.error('Error loading radar data:', error);
@@ -595,6 +796,77 @@ async function loadRadarData() {
             <small>${error.message}</small>
         `;
     }
+}
+
+/**
+ * Show radar display controls and hide date/time selection
+ */
+function showRadarControls(nexradFile) {
+    // Hide date/time controls
+    document.getElementById('dateTimeControls').style.display = 'none';
+    document.getElementById('timeSelector').style.display = 'none';
+    document.getElementById('proceedBtn').style.display = 'none';
+
+    // Show radar controls
+    document.getElementById('radarControls').style.display = 'block';
+
+    // Populate scan level selector with elevation angles
+    const scanLevelSelect = document.getElementById('scanLevelSelect');
+    scanLevelSelect.innerHTML = '<option value="">Select Scan</option>';
+
+    for (let i = 0; i < nexradFile.nscans; i++) {
+        const scan = nexradFile.scans[i];
+        const radialIndices = scan.indices;
+
+        if (radialIndices.length > 0) {
+            const firstRadial = nexradFile.radialRecords[radialIndices[0]];
+            const elevAngle = firstRadial.msg_header.elevation_angle;
+            const nrays = radialIndices.length;
+
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Scan ${i + 1}: ${elevAngle.toFixed(2)}° (${nrays} radials)`;
+            scanLevelSelect.appendChild(option);
+        }
+    }
+
+    // Select first scan by default
+    if (nexradFile.nscans > 0) {
+        scanLevelSelect.value = '0';
+    }
+
+    console.log(`Populated ${nexradFile.nscans} scan levels`);
+}
+
+/**
+ * Hide radar controls and show date/time selection
+ */
+function hideRadarControls() {
+    // Show date/time controls
+    document.getElementById('dateTimeControls').style.display = 'block';
+    document.getElementById('proceedBtn').style.display = 'block';
+
+    // Hide radar controls
+    document.getElementById('radarControls').style.display = 'none';
+
+    // Clear range rings and crosshair
+    rangeRings.forEach(ring => ring.setMap(null));
+    rangeRings = [];
+    crosshairLines.forEach(line => line.setMap(null));
+    crosshairLines = [];
+
+    // Clear radar overlay
+    if (radarOverlay) {
+        radarOverlay.setMap(null);
+        radarOverlay = null;
+    }
+
+    // Restore markers
+    filterMarkersBySiteAvailability();
+
+    // Reset zoom
+    map.setCenter({ lat: 39.8283, lng: -98.5795 });
+    map.setZoom(4);
 }
 
 function setupResetButton() {
@@ -652,6 +924,18 @@ function resetFilters() {
     // Disable proceed button
     updateProceedButton();
 
+    // Clear range rings and crosshair
+    rangeRings.forEach(ring => ring.setMap(null));
+    rangeRings = [];
+    crosshairLines.forEach(line => line.setMap(null));
+    crosshairLines = [];
+
+    // Clear radar overlay
+    if (radarOverlay) {
+        radarOverlay.setMap(null);
+        radarOverlay = null;
+    }
+
     // Reset all markers to default state
     filterMarkersBySiteAvailability();
 
@@ -662,5 +946,157 @@ function resetFilters() {
 
     console.log('Filters and selections reset');
 }
+
+/**
+ * Generate and display radar heatmap overlay
+ * @param {number} scanIndex - Scan index to display
+ * @param {string} resolution - Resolution mode ('auto', '360', '720')
+ */
+async function displayRadarHeatmap(scanIndex, resolution) {
+    const radarData = window.radarFileData;
+    if (!radarData) {
+        console.error('No radar data available');
+        return;
+    }
+
+    const nexradFile = radarData.nexradFile;
+    const center = { lat: radarData.site.lat, lng: radarData.site.lon };
+
+    console.log(`Generating heatmap for scan ${scanIndex}, resolution: ${resolution}`);
+
+    // Get scan info
+    const scanInfo = nexradFile.scan_info([scanIndex])[0];
+    if (!scanInfo.moments.includes('REF')) {
+        alert('No reflectivity data available for this scan');
+        return;
+    }
+
+    // Get data arrays
+    const ngates = scanInfo.ngates.REF;
+    const nrays = scanInfo.nrays;
+    const azimuths = nexradFile.get_azimuth_angles([scanIndex]);
+    const ranges = nexradFile.get_range(scanIndex, 'REF');
+    const refData = nexradFile.get_data('REF', ngates, [scanIndex], false);
+
+    console.log(`Data dimensions: ${nrays} rays × ${ngates} gates`);
+
+    // Find min/max values for color scaling (ignore null values)
+    let minVal = Infinity;
+    let maxVal = -Infinity;
+    for (let ray = 0; ray < nrays; ray++) {
+        for (let gate = 0; gate < ngates; gate++) {
+            const val = refData[ray][gate];
+            if (val !== null && val !== undefined && !isNaN(val)) {
+                minVal = Math.min(minVal, val);
+                maxVal = Math.max(maxVal, val);
+            }
+        }
+    }
+
+    console.log(`Reflectivity range: ${minVal.toFixed(1)} to ${maxVal.toFixed(1)} dBZ`);
+
+    // Create canvas for rendering
+    const canvasSize = 2048; // High resolution canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
+    const ctx = canvas.getContext('2d');
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+    // Calculate pixels per meter for scaling
+    const maxRange = ranges[ranges.length - 1];
+    const scale = (canvasSize / 2) / maxRange;
+
+    // Draw each radial
+    for (let ray = 0; ray < nrays; ray++) {
+        const azimuth = azimuths[ray];
+        const azimuthRad = (azimuth - 90) * Math.PI / 180; // Convert to math coordinates (0° = East)
+
+        for (let gate = 0; gate < ngates; gate++) {
+            const val = refData[ray][gate];
+
+            // Skip null/invalid values
+            if (val === null || val === undefined || isNaN(val)) {
+                continue;
+            }
+
+            // Normalize value for color mapping
+            const normalized = (val - minVal) / (maxVal - minVal);
+            const color = valueToRainbowColor(normalized);
+
+            // Calculate position on canvas
+            const range = ranges[gate];
+            const x = canvasSize / 2 + range * Math.cos(azimuthRad) * scale;
+            const y = canvasSize / 2 + range * Math.sin(azimuthRad) * scale;
+
+            // Calculate gate dimensions for proper coverage
+            const nextRange = gate < ngates - 1 ? ranges[gate + 1] : range + (range - (gate > 0 ? ranges[gate - 1] : 0));
+            const gateWidth = (nextRange - range) * scale;
+            const azimuthSpacing = 360 / nrays;
+            const azimuthWidthRad = azimuthSpacing * Math.PI / 180;
+
+            // Draw as a wedge segment
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.7; // Semi-transparent
+
+            // Draw rectangle approximation (faster than wedge)
+            const size = Math.max(gateWidth, 2);
+            ctx.fillRect(x - size / 2, y - size / 2, size, size);
+        }
+    }
+
+    // Reset alpha
+    ctx.globalAlpha = 1.0;
+
+    // Convert canvas to image URL
+    const imageUrl = canvas.toDataURL('image/png');
+
+    // Calculate geographic bounds
+    const maxRangeMeters = maxRange;
+    const north = calculateDestinationPoint(center, maxRangeMeters, 0);
+    const south = calculateDestinationPoint(center, maxRangeMeters, 180);
+    const east = calculateDestinationPoint(center, maxRangeMeters, 90);
+    const west = calculateDestinationPoint(center, maxRangeMeters, 270);
+
+    const bounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(south.lat, west.lng),
+        new google.maps.LatLng(north.lat, east.lng)
+    );
+
+    // Remove existing overlay
+    if (radarOverlay) {
+        radarOverlay.setMap(null);
+    }
+
+    // Create ground overlay
+    radarOverlay = new google.maps.GroundOverlay(imageUrl, bounds, {
+        opacity: 0.7,
+        clickable: false
+    });
+
+    radarOverlay.setMap(map);
+
+    console.log('Heatmap overlay created successfully');
+}
+
+// Setup radar control event handlers
+document.getElementById('displayHeatmapBtn').addEventListener('click', async () => {
+    const scanIndex = parseInt(document.getElementById('scanLevelSelect').value);
+    const resolution = document.getElementById('resolutionSelect').value;
+
+    if (isNaN(scanIndex) || !window.radarFileData) {
+        alert('Please select a scan level');
+        return;
+    }
+
+    console.log(`Display heatmap - Scan: ${scanIndex}, Resolution: ${resolution}`);
+    await displayRadarHeatmap(scanIndex, resolution);
+});
+
+document.getElementById('backToSelectionBtn').addEventListener('click', () => {
+    hideRadarControls();
+});
 
 document.addEventListener('DOMContentLoaded', initializeApp);

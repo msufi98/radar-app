@@ -401,6 +401,22 @@ body {
   background: var(--color-border);
 }
 
+.btn--secondary {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: var(--color-bg-disabled);
+  border-color: var(--color-border-hover);
+  transform: translateY(-1px);
+}
+
+.btn--secondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 /* ============================================
    Site Selection Display
    ============================================ */
