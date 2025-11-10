@@ -24,6 +24,74 @@ const s3Client = new S3Client({
     signer: { sign: async (request) => request }
 });
 
+/**
+ * Fetch S3 data with multi-proxy fallback (similar to common.js pattern)
+ * @param {string} s3Url - Direct S3 URL to fetch
+ * @returns {Promise<Response>} - Fetch response
+ */
+async function fetchWithProxyFallback(s3Url) {
+    // Try multiple CORS proxies in sequence
+    const proxyMethods = [
+        {
+            name: 'Iowa Hydroinformatics',
+            url: `https://hydroinformatics.uiowa.edu/lab/cors/?url=${encodeURIComponent(s3Url)}`
+        },
+        {
+            name: 'allorigins',
+            url: `https://api.allorigins.win/raw?url=${encodeURIComponent(s3Url)}`
+        },
+        {
+            name: 'corsproxy.io',
+            url: `https://corsproxy.io/?${encodeURIComponent(s3Url)}`
+        },
+        {
+            name: 'proxy.cors.sh',
+            url: `https://proxy.cors.sh/${s3Url}`
+        },
+        {
+            name: 'direct',
+            url: s3Url
+        }
+    ];
+
+    let lastError = null;
+
+    for (const proxy of proxyMethods) {
+        try {
+            console.log(`Attempting fetch via ${proxy.name}...`);
+
+            // Create timeout promise (30 seconds per proxy attempt)
+            const timeout = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Request timeout')), 30000);
+            });
+
+            // Race between fetch and timeout
+            const response = await Promise.race([
+                fetch(proxy.url, {
+                    method: 'GET',
+                    mode: 'cors'
+                }),
+                timeout
+            ]);
+
+            if (!response.ok) {
+                throw new Error(`${proxy.name} returned status: ${response.status}`);
+            }
+
+            console.log(`Successfully fetched via ${proxy.name}`);
+            return response;
+
+        } catch (error) {
+            lastError = error;
+            console.warn(`${proxy.name} failed:`, error.message);
+            continue;
+        }
+    }
+
+    // If all proxies failed, throw the last error
+    throw new Error(`All proxy methods failed. Last error: ${lastError?.message || 'Unknown error'}`);
+}
+
 async function initializeApp() {
     try {
         await google.maps.importLibrary("maps");
@@ -237,55 +305,51 @@ async function fetchAvailableSitesForDate() {
     const s3BaseUrl = 'https://s3.amazonaws.com/unidata-nexrad-level2';
     const prefix = `${selectedDate}/`;
     const s3Url = `${s3BaseUrl}?list-type=2&prefix=${encodeURIComponent(prefix)}&delimiter=/`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(s3Url)}`;
 
     try {
         console.log('Fetching available sites for:', selectedDate);
-        const response = await fetch(proxyUrl);
 
-        if (response.ok) {
-            const text = await response.text();
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(text, 'text/xml');
+        // Use multi-proxy fallback
+        const response = await fetchWithProxyFallback(s3Url);
+        const text = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(text, 'text/xml');
 
-            // Check for error
-            const errorElement = xmlDoc.getElementsByTagName('Error')[0];
-            if (errorElement) {
-                console.log('No data for this date');
-                availableSites = [];
-                filterMarkersBySiteAvailability();
-                statusDiv.className = 'status-message warning';
-                statusDiv.textContent = 'No radar data available for selected date';
-                return;
-            }
+        // Check for error
+        const errorElement = xmlDoc.getElementsByTagName('Error')[0];
+        if (errorElement) {
+            console.log('No data for this date');
+            availableSites = [];
+            filterMarkersBySiteAvailability();
+            statusDiv.className = 'status-message warning';
+            statusDiv.textContent = 'No radar data available for selected date';
+            return;
+        }
 
-            // Get common prefixes (subdirectories = radar sites)
-            const commonPrefixes = xmlDoc.getElementsByTagName('CommonPrefixes');
-            const sites = [];
+        // Get common prefixes (subdirectories = radar sites)
+        const commonPrefixes = xmlDoc.getElementsByTagName('CommonPrefixes');
+        const sites = [];
 
-            for (let i = 0; i < commonPrefixes.length; i++) {
-                const prefixElement = commonPrefixes[i].getElementsByTagName('Prefix')[0];
-                if (prefixElement) {
-                    const prefix = prefixElement.textContent;
-                    // Extract site code from prefix like "2013/05/06/KABR/"
-                    const parts = prefix.split('/');
-                    const siteCode = parts[parts.length - 2];
-                    if (siteCode && siteCode.length === 4) {
-                        sites.push(siteCode);
-                    }
+        for (let i = 0; i < commonPrefixes.length; i++) {
+            const prefixElement = commonPrefixes[i].getElementsByTagName('Prefix')[0];
+            if (prefixElement) {
+                const prefix = prefixElement.textContent;
+                // Extract site code from prefix like "2013/05/06/KABR/"
+                const parts = prefix.split('/');
+                const siteCode = parts[parts.length - 2];
+                if (siteCode && siteCode.length === 4) {
+                    sites.push(siteCode);
                 }
             }
-
-            console.log(`Found ${sites.length} available sites for ${selectedDate}:`, sites);
-            availableSites = sites;
-            filterMarkersBySiteAvailability();
-
-            statusDiv.className = 'status-message success';
-            statusDiv.innerHTML = `<span class="checkmark">✓</span> ${sites.length} radar sites available for selected date`;
-
-        } else {
-            throw new Error(`Failed to fetch: ${response.status}`);
         }
+
+        console.log(`Found ${sites.length} available sites for ${selectedDate}:`, sites);
+        availableSites = sites;
+        filterMarkersBySiteAvailability();
+
+        statusDiv.className = 'status-message success';
+        statusDiv.innerHTML = `<span class="checkmark">✓</span> ${sites.length} radar sites available for selected date`;
+
     } catch (error) {
         console.error('Error fetching available sites:', error);
         statusDiv.className = 'status-message warning';
@@ -340,86 +404,80 @@ async function checkDataAvailability() {
     const prefix = `${selectedDate}/${selectedSite.code}/`;
     const s3Url = `${s3BaseUrl}?list-type=2&prefix=${encodeURIComponent(prefix)}`;
 
-    // Using api.allorigins.win which is more reliable
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(s3Url)}`;
-
     console.log('S3 URL:', s3Url);
-    console.log('Proxy URL:', proxyUrl);
 
     try {
-        console.log('Fetching via CORS proxy...');
-        const response = await fetch(proxyUrl);
+        console.log('Fetching data availability via multi-proxy fallback...');
 
-        if (response.ok) {
-            const text = await response.text();
-            console.log('Response text:', text);
+        // Use multi-proxy fallback
+        const response = await fetchWithProxyFallback(s3Url);
+        const text = await response.text();
+        console.log('Response text:', text);
 
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(text, 'text/xml');
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(text, 'text/xml');
 
-            // Check for error response
-            const errorElement = xmlDoc.getElementsByTagName('Error')[0];
-            if (errorElement) {
-                const codeElement = errorElement.getElementsByTagName('Code')[0];
-                const messageElement = errorElement.getElementsByTagName('Message')[0];
-                console.log('S3 Error:', codeElement?.textContent, messageElement?.textContent);
+        // Check for error response
+        const errorElement = xmlDoc.getElementsByTagName('Error')[0];
+        if (errorElement) {
+            const codeElement = errorElement.getElementsByTagName('Code')[0];
+            const messageElement = errorElement.getElementsByTagName('Message')[0];
+            console.log('S3 Error:', codeElement?.textContent, messageElement?.textContent);
 
-                if (codeElement && codeElement.textContent === 'NoSuchKey') {
-                    statusDiv.className = 'status-message error';
-                    statusDiv.textContent = `No data available for ${selectedSite.code} on ${selectedDate}`;
-                    document.getElementById('timeSelector').style.display = 'none';
-                    return;
+            if (codeElement && codeElement.textContent === 'NoSuchKey') {
+                statusDiv.className = 'status-message error';
+                statusDiv.textContent = `No data available for ${selectedSite.code} on ${selectedDate}`;
+                document.getElementById('timeSelector').style.display = 'none';
+                return;
+            }
+        }
+
+        const contents = xmlDoc.getElementsByTagName('Contents');
+        console.log('Number of Contents elements:', contents.length);
+
+        if (contents.length > 0) {
+            const files = [];
+            console.log('Processing contents...');
+
+            // Log first few for debugging
+            for (let i = 0; i < Math.min(5, contents.length); i++) {
+                const keyElement = contents[i].getElementsByTagName('Key')[0];
+                if (keyElement) {
+                    console.log(`Key ${i}:`, keyElement.textContent);
                 }
             }
 
-            const contents = xmlDoc.getElementsByTagName('Contents');
-            console.log('Number of Contents elements:', contents.length);
-
-            if (contents.length > 0) {
-                const files = [];
-                console.log('Processing contents...');
-
-                // Log first few for debugging
-                for (let i = 0; i < Math.min(5, contents.length); i++) {
-                    const keyElement = contents[i].getElementsByTagName('Key')[0];
-                    if (keyElement) {
-                        console.log(`Key ${i}:`, keyElement.textContent);
+            // Process all files
+            for (let i = 0; i < contents.length; i++) {
+                const keyElement = contents[i].getElementsByTagName('Key')[0];
+                if (keyElement) {
+                    const key = keyElement.textContent;
+                    const fileName = key.split('/').pop();
+                    if (fileName && fileName.startsWith(selectedSite.code)) {
+                        files.push(fileName);
                     }
                 }
+            }
+            console.log('Extracted files:', files.length, 'files');
 
-                // Process all files
-                for (let i = 0; i < contents.length; i++) {
-                    const keyElement = contents[i].getElementsByTagName('Key')[0];
-                    if (keyElement) {
-                        const key = keyElement.textContent;
-                        const fileName = key.split('/').pop();
-                        if (fileName && fileName.startsWith(selectedSite.code)) {
-                            files.push(fileName);
-                        }
-                    }
-                }
-                console.log('Extracted files:', files.length, 'files');
-
-                if (files.length > 0) {
-                    statusDiv.className = 'status-message success';
-                    statusDiv.innerHTML = `<span class="checkmark">✓</span> Data available: ${files.length} files found`;
-                    displayAvailableTimes(files);
-                } else {
-                    statusDiv.className = 'status-message error';
-                    statusDiv.innerHTML = `<span class="error-icon">✗</span> No data available for ${selectedSite.code} on ${selectedDate}`;
-                    document.getElementById('timeSelector').style.display = 'none';
-                }
+            if (files.length > 0) {
+                statusDiv.className = 'status-message success';
+                statusDiv.innerHTML = `<span class="checkmark">✓</span> Data available: ${files.length} files found`;
+                displayAvailableTimes(files);
             } else {
-                // No data for this date
                 statusDiv.className = 'status-message error';
                 statusDiv.innerHTML = `<span class="error-icon">✗</span> No data available for ${selectedSite.code} on ${selectedDate}`;
                 document.getElementById('timeSelector').style.display = 'none';
             }
         } else {
-            throw new Error(`Proxy returned status: ${response.status}`);
+            // No data for this date
+            statusDiv.className = 'status-message error';
+            statusDiv.innerHTML = `<span class="error-icon">✗</span> No data available for ${selectedSite.code} on ${selectedDate}`;
+            document.getElementById('timeSelector').style.display = 'none';
         }
+
     } catch (error) {
-        console.error('Iowa CORS proxy failed:', error);
+        console.error('Proxy fallback failed:', error);
 
         // If proxy fails, show error with sample data
         statusDiv.className = 'status-message warning';

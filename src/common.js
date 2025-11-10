@@ -76,6 +76,10 @@ async function _download_from_s3(s3_uri, storage_options) {
         // Try multiple CORS proxies in sequence
         const proxyMethods = [
             {
+                name: 'Iowa Hydroinformatics',
+                url: `https://hydroinformatics.uiowa.edu/lab/cors/?url=${encodeURIComponent(fileUrl)}`
+            },
+            {
                 name: 'allorigins (raw)',
                 url: `https://api.allorigins.win/raw?url=${encodeURIComponent(fileUrl)}`
             },
