@@ -34,7 +34,7 @@ async function fetchWithProxyFallback(s3Url) {
     const proxyMethods = [
         {
             name: 'Iowa Hydroinformatics',
-            url: `https://hydroinformatics.uiowa.edu/lab/cors/?url=${encodeURIComponent(s3Url)}`
+            url: `https://hydroinformatics.uiowa.edu/lab/cors/${encodeURIComponent(s3Url)}`
         },
         {
             name: 'allorigins',
@@ -348,7 +348,7 @@ async function fetchAvailableSitesForDate() {
         filterMarkersBySiteAvailability();
 
         statusDiv.className = 'status-message success';
-        statusDiv.innerHTML = `<span class="checkmark">✓</span> ${sites.length} radar sites available for selected date`;
+        statusDiv.innerHTML = `<span class="checkmark">✓</span> ${sites.length} radar sites available for selected date. Click on a site marker to load data.`;
 
     } catch (error) {
         console.error('Error fetching available sites:', error);
@@ -371,18 +371,23 @@ function filterMarkersBySiteAvailability() {
         // Check if site is available for selected date
         const isAvailable = availableSites === null || availableSites.includes(site.code);
 
-        // Show marker only if it matches search AND is available
-        marker.map = (matchesSearch && isAvailable) ? map : null;
+        // Show marker only if it matches search (keep unavailable sites visible but grayed)
+        marker.map = matchesSearch ? map : null;
 
-        // Update marker appearance for unavailable sites
+        // Update marker appearance based on availability
         if (marker.content) {
             if (!isAvailable) {
+                // Gray out unavailable sites
                 marker.content.style.backgroundColor = '#cbd5e0';
-                marker.content.style.opacity = '0.5';
+                marker.content.style.opacity = '1';
+                marker.content.style.transform = 'scale(1)';
             } else if (site.code === selectedSite?.code) {
+                // Highlight selected site
                 marker.content.style.backgroundColor = '#4a6a8e';
                 marker.content.style.transform = 'scale(1.2)';
+                marker.content.style.opacity = '1';
             } else {
+                // Normal available site
                 marker.content.style.backgroundColor = '#5a7a9e';
                 marker.content.style.transform = 'scale(1)';
                 marker.content.style.opacity = '1';
@@ -518,7 +523,7 @@ function displayAvailableTimes(files) {
     // Update the heading to show count
     const heading = timeSelector.querySelector('.time-selector__heading');
     if (heading) {
-        heading.textContent = `Available Times (${times.length} scans)`;
+        heading.textContent = `Available Times (${times.length} scans - Click to Load)`;
     }
 
     times.forEach(time => {
@@ -527,13 +532,16 @@ function displayAvailableTimes(files) {
         timeItem.textContent = time.display;
         timeItem.dataset.fileName = time.fileName;
 
-        timeItem.addEventListener('click', () => {
+        timeItem.addEventListener('click', async () => {
+            // Highlight selected time
             document.querySelectorAll('.time-item').forEach(item => {
                 item.classList.remove('selected');
             });
             timeItem.classList.add('selected');
+
+            // Set selected time and load radar data
             selectedTime = time.fileName;
-            updateProceedButton();
+            await loadRadarData();
         });
 
         timesList.appendChild(timeItem);
@@ -596,11 +604,6 @@ function extractTimesFromFiles(files) {
     times.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 
     return times;
-}
-
-function updateProceedButton() {
-    const proceedBtn = document.getElementById('proceedBtn');
-    proceedBtn.disabled = !(selectedSite && selectedDate && selectedTime);
 }
 
 /**
@@ -765,18 +768,28 @@ function createRangeRings(center, maxRange, numRings = 5) {
     });
 }
 
-document.getElementById('proceedBtn').addEventListener('click', async () => {
-    if (selectedSite && selectedDate && selectedTime) {
-        await loadRadarData();
-    }
-});
-
 async function loadRadarData() {
-    const statusDiv = document.getElementById('dataStatus');
+    const radarStatusDiv = document.getElementById('radarStatus');
 
-    // Show loading progress
-    statusDiv.className = 'status-message loading';
-    statusDiv.innerHTML = '<span class="spinner"></span> Loading radar data...';
+    // Immediately switch to Step 2 to show loading progress
+    const step1Header = document.getElementById('step1Header');
+    const step1Content = document.getElementById('step1Content');
+    const step2Header = document.getElementById('step2Header');
+    const step2Content = document.getElementById('step2Content');
+
+    // Collapse Step 1
+    step1Header.setAttribute('aria-expanded', 'false');
+    step1Content.style.display = 'none';
+    step1Header.querySelector('.accordion-header__icon').textContent = '▼';
+
+    // Expand Step 2
+    step2Header.setAttribute('aria-expanded', 'true');
+    step2Content.style.display = 'block';
+    step2Header.querySelector('.accordion-header__icon').textContent = '▲';
+
+    // Show loading progress in radar status (Step 2)
+    radarStatusDiv.className = 'status-message loading';
+    radarStatusDiv.innerHTML = '<span class="spinner"></span> Loading radar data...';
 
     // Clear all markers from the map
     markers.forEach(({ marker }) => {
@@ -821,11 +834,19 @@ async function loadRadarData() {
         // Create crosshair (plus sign) inscribed in largest circle
         createCrosshair(radarCenter, maxRange);
 
-        // Display parsed information
-        statusDiv.className = 'status-message success';
-        statusDiv.innerHTML = `
-            <span class="checkmark">✓</span> Radar data loaded successfully!<br>
+        // Format time from selectedTime (e.g., "KAMX20241110_235959_V06" -> "23:59:59")
+        const timeMatch = selectedTime.match(/_(\d{6})_/);
+        const timeStr = timeMatch ?
+            `${timeMatch[1].substring(0, 2)}:${timeMatch[1].substring(2, 4)}:${timeMatch[1].substring(4, 6)} UTC` :
+            selectedTime;
+
+        // Display parsed information in radar status (Step 2)
+        radarStatusDiv.className = 'status-message success';
+        radarStatusDiv.innerHTML = `
+            <span class="checkmark">✓</span> Radar data downloaded successfully!<br>
             <strong>Site:</strong> ${nexradFile.volumeHeader.icao.trim()}<br>
+            <strong>Date:</strong> ${selectedDate}<br>
+            <strong>Time:</strong> ${timeStr}<br>
             <strong>VCP:</strong> ${nexradFile.getVCPPattern()}<br>
             <strong>Scans:</strong> ${nexradFile.nscans}<br>
             <strong>Radials:</strong> ${nexradFile.radialRecords.length}<br>
@@ -848,8 +869,8 @@ async function loadRadarData() {
 
     } catch (error) {
         console.error('Error loading radar data:', error);
-        statusDiv.className = 'status-message error';
-        statusDiv.innerHTML = `
+        radarStatusDiv.className = 'status-message error';
+        radarStatusDiv.innerHTML = `
             <span class="error-icon">✗</span> Failed to load radar data<br>
             <small>${error.message}</small>
         `;
@@ -860,17 +881,41 @@ async function loadRadarData() {
  * Show radar display controls and hide date/time selection
  */
 function showRadarControls(nexradFile) {
-    // Hide date/time controls
-    document.getElementById('dateTimeControls').style.display = 'none';
-    document.getElementById('timeSelector').style.display = 'none';
-    document.getElementById('proceedBtn').style.display = 'none';
+    // Note: Step 1/Step 2 accordion switching is now handled at the start of loadRadarData()
+    // to provide immediate visual feedback
 
-    // Show radar controls
-    document.getElementById('radarControls').style.display = 'block';
+    // Store radar file globally for resolution filtering
+    window.currentRadarFile = nexradFile;
 
-    // Populate scan level selector with elevation angles
+    // Reset resolution and scan level selectors
+    const resolutionSelect = document.getElementById('resolutionSelect');
+    const scanLevelSelect = document.getElementById('scanLevelSelect');
+
+    resolutionSelect.value = '';
+    scanLevelSelect.innerHTML = '<option value="">Select Resolution First</option>';
+    scanLevelSelect.disabled = true;
+
+    console.log(`Radar data loaded with ${nexradFile.nscans} scan levels`);
+}
+
+/**
+ * Filter and populate scan levels based on selected resolution
+ * @param {string} resolution - Resolution filter ('auto', '360', '720', or '')
+ */
+function filterScanLevelsByResolution(resolution) {
+    const nexradFile = window.currentRadarFile;
+    if (!nexradFile) return;
+
     const scanLevelSelect = document.getElementById('scanLevelSelect');
     scanLevelSelect.innerHTML = '<option value="">Select Scan</option>';
+
+    if (!resolution) {
+        scanLevelSelect.disabled = true;
+        scanLevelSelect.innerHTML = '<option value="">Select Resolution First</option>';
+        return;
+    }
+
+    let filteredScans = [];
 
     for (let i = 0; i < nexradFile.nscans; i++) {
         const scan = nexradFile.scans[i];
@@ -881,31 +926,62 @@ function showRadarControls(nexradFile) {
             const elevAngle = firstRadial.msg_header.elevation_angle;
             const nrays = radialIndices.length;
 
-            const option = document.createElement('option');
-            option.value = i;
-            option.textContent = `Scan ${i + 1}: ${elevAngle.toFixed(2)}° (${nrays} radials)`;
-            scanLevelSelect.appendChild(option);
+            // Filter based on resolution
+            let includeScna = false;
+            if (resolution === 'auto') {
+                includeScna = true;
+            } else if (resolution === '360' && nrays <= 400) {
+                includeScna = true; // Low resolution: ~360 rays
+            } else if (resolution === '720' && nrays > 400) {
+                includeScna = true; // High resolution: ~720 rays
+            }
+
+            if (includeScna) {
+                filteredScans.push({
+                    index: i,
+                    elevAngle: elevAngle,
+                    nrays: nrays
+                });
+            }
         }
     }
 
-    // Select first scan by default
-    if (nexradFile.nscans > 0) {
-        scanLevelSelect.value = '0';
-    }
+    // Sort scans by elevation angle in ascending order
+    filteredScans.sort((a, b) => a.elevAngle - b.elevAngle);
 
-    console.log(`Populated ${nexradFile.nscans} scan levels`);
+    // Populate dropdown with filtered scans
+    filteredScans.forEach(scan => {
+        const option = document.createElement('option');
+        option.value = scan.index;
+        option.textContent = `Scan ${scan.index + 1}: ${scan.elevAngle.toFixed(2)}° (${scan.nrays} radials)`;
+        scanLevelSelect.appendChild(option);
+    });
+
+    // Enable dropdown (don't auto-select, wait for user to choose)
+    scanLevelSelect.disabled = false;
+
+    console.log(`Filtered to ${filteredScans.length} scans for resolution: ${resolution}`);
 }
 
 /**
  * Hide radar controls and show date/time selection
  */
 function hideRadarControls() {
-    // Show date/time controls
-    document.getElementById('dateTimeControls').style.display = 'block';
-    document.getElementById('proceedBtn').style.display = 'block';
+    // Expand Step 1, collapse Step 2
+    const step1Header = document.getElementById('step1Header');
+    const step1Content = document.getElementById('step1Content');
+    const step2Header = document.getElementById('step2Header');
+    const step2Content = document.getElementById('step2Content');
 
-    // Hide radar controls
-    document.getElementById('radarControls').style.display = 'none';
+    // Expand Step 1
+    step1Header.setAttribute('aria-expanded', 'true');
+    step1Content.style.display = 'block';
+    step1Header.querySelector('.accordion-header__icon').textContent = '▲'; // Up when expanded
+
+    // Collapse Step 2
+    step2Header.setAttribute('aria-expanded', 'false');
+    step2Content.style.display = 'none';
+    step2Header.querySelector('.accordion-header__icon').textContent = '▼'; // Down when collapsed
 
     // Clear range rings and crosshair
     rangeRings.forEach(ring => ring.setMap(null));
@@ -962,11 +1038,16 @@ function resetFilters() {
     selectedTime = null;
     availableSites = null;
 
-    // Clear status message
+    // Clear status messages
     const statusDiv = document.getElementById('dataStatus');
     if (statusDiv) {
         statusDiv.className = 'status-message';
         statusDiv.innerHTML = '';
+    }
+    const radarStatusDiv = document.getElementById('radarStatus');
+    if (radarStatusDiv) {
+        radarStatusDiv.className = 'status-message';
+        radarStatusDiv.innerHTML = '';
     }
 
     // Hide and clear time selector
@@ -979,8 +1060,23 @@ function resetFilters() {
         timesList.innerHTML = '';
     }
 
-    // Disable proceed button
-    updateProceedButton();
+    // Expand Step 1, collapse Step 2 (accordion management)
+    const step1Header = document.getElementById('step1Header');
+    const step1Content = document.getElementById('step1Content');
+    const step2Header = document.getElementById('step2Header');
+    const step2Content = document.getElementById('step2Content');
+
+    if (step1Header && step1Content) {
+        step1Header.setAttribute('aria-expanded', 'true');
+        step1Content.style.display = 'block';
+        step1Header.querySelector('.accordion-header__icon').textContent = '▲'; // Up when expanded
+    }
+
+    if (step2Header && step2Content) {
+        step2Header.setAttribute('aria-expanded', 'false');
+        step2Content.style.display = 'none';
+        step2Header.querySelector('.accordion-header__icon').textContent = '▼'; // Down when collapsed
+    }
 
     // Clear range rings and crosshair
     rangeRings.forEach(ring => ring.setMap(null));
@@ -996,6 +1092,10 @@ function resetFilters() {
 
     // Reset all markers to default state
     filterMarkersBySiteAvailability();
+
+    // Reset zoom to full US view
+    map.setCenter({ lat: 39.8283, lng: -98.5795 });
+    map.setZoom(4);
 
     // Close any open info windows
     if (infoWindow) {
@@ -1019,13 +1119,19 @@ async function displayRadarHeatmap(scanIndex, resolution) {
 
     const nexradFile = radarData.nexradFile;
     const center = { lat: radarData.site.lat, lng: radarData.site.lon };
+    const radarStatusDiv = document.getElementById('radarStatus');
 
     console.log(`Generating heatmap for scan ${scanIndex}, resolution: ${resolution}`);
+
+    // Show generating message
+    radarStatusDiv.className = 'status-message loading';
+    radarStatusDiv.innerHTML = '<span class="spinner"></span> Generating heatmap...';
 
     // Get scan info
     const scanInfo = nexradFile.scan_info([scanIndex])[0];
     if (!scanInfo.moments.includes('REF')) {
-        alert('No reflectivity data available for this scan');
+        radarStatusDiv.className = 'status-message error';
+        radarStatusDiv.innerHTML = '<span class="error-icon">✗</span> No reflectivity data available for this scan';
         return;
     }
 
@@ -1137,24 +1243,83 @@ async function displayRadarHeatmap(scanIndex, resolution) {
     radarOverlay.setMap(map);
 
     console.log('Heatmap overlay created successfully');
+
+    // Get elevation angle for this scan
+    const firstRadial = nexradFile.radialRecords[nexradFile.scans[scanIndex].indices[0]];
+    const elevAngle = firstRadial.msg_header.elevation_angle;
+
+    // Format time from radarData
+    const timeMatch = radarData.fileName.match(/_(\d{6})_/);
+    const timeStr = timeMatch ?
+        `${timeMatch[1].substring(0, 2)}:${timeMatch[1].substring(2, 4)}:${timeMatch[1].substring(4, 6)} UTC` :
+        radarData.fileName;
+
+    // Update status with scan information
+    radarStatusDiv.className = 'status-message success';
+    radarStatusDiv.innerHTML = `
+        <span class="checkmark">✓</span> Heatmap displayed successfully!<br>
+        <strong>Site:</strong> ${radarData.site.code}<br>
+        <strong>Date:</strong> ${radarData.date}<br>
+        <strong>Time:</strong> ${timeStr}<br>
+        <strong>Elevation:</strong> ${elevAngle.toFixed(2)}°<br>
+        <strong>Radials:</strong> ${nrays}<br>
+        <strong>Gates:</strong> ${ngates}<br>
+        <strong>Reflectivity:</strong> ${minVal.toFixed(1)} to ${maxVal.toFixed(1)} dBZ
+    `;
 }
 
 // Setup radar control event handlers
-document.getElementById('displayHeatmapBtn').addEventListener('click', async () => {
-    const scanIndex = parseInt(document.getElementById('scanLevelSelect').value);
+document.getElementById('resolutionSelect').addEventListener('change', (e) => {
+    const resolution = e.target.value;
+    filterScanLevelsByResolution(resolution);
+});
+
+document.getElementById('scanLevelSelect').addEventListener('change', async (e) => {
+    const scanIndex = parseInt(e.target.value);
     const resolution = document.getElementById('resolutionSelect').value;
 
     if (isNaN(scanIndex) || !window.radarFileData) {
-        alert('Please select a scan level');
-        return;
+        return; // No valid selection yet
     }
 
     console.log(`Display heatmap - Scan: ${scanIndex}, Resolution: ${resolution}`);
     await displayRadarHeatmap(scanIndex, resolution);
 });
 
-document.getElementById('backToSelectionBtn').addEventListener('click', () => {
-    hideRadarControls();
-});
+// Accordion toggle functionality
+function toggleAccordion(headerElement, contentElement) {
+    const isExpanded = headerElement.getAttribute('aria-expanded') === 'true';
+    const icon = headerElement.querySelector('.accordion-header__icon');
 
-document.addEventListener('DOMContentLoaded', initializeApp);
+    if (isExpanded) {
+        // Collapse
+        headerElement.setAttribute('aria-expanded', 'false');
+        contentElement.style.display = 'none';
+        icon.textContent = '▼'; // Down arrow when collapsed
+    } else {
+        // Expand
+        headerElement.setAttribute('aria-expanded', 'true');
+        contentElement.style.display = 'block';
+        icon.textContent = '▲'; // Up arrow when expanded
+    }
+}
+
+// Setup accordion event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    const step1Header = document.getElementById('step1Header');
+    const step1Content = document.getElementById('step1Content');
+    const step2Header = document.getElementById('step2Header');
+    const step2Content = document.getElementById('step2Content');
+
+    // Add click handlers for accordion headers
+    step1Header.addEventListener('click', () => {
+        toggleAccordion(step1Header, step1Content);
+    });
+
+    step2Header.addEventListener('click', () => {
+        toggleAccordion(step2Header, step2Content);
+    });
+
+    // Initialize the app
+    initializeApp();
+});

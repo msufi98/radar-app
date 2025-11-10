@@ -43,85 +43,86 @@
     <!-- Date & Time Selection Panel (Floating Right) -->
     <aside class="panel panel--datetime" aria-label="Date and time selection">
         <div class="panel__content">
-            <h2 class="panel__heading">Select Date & Time</h2>
 
-            <!-- Date Selectors -->
-            <div id="dateTimeControls" class="date-selectors">
-                <div class="input-group">
-                    <label for="yearSelect" class="input-group__label">Year</label>
-                    <select id="yearSelect" class="select" aria-required="true">
-                        <option value="">Select Year</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="monthSelect" class="input-group__label">Month</label>
-                    <select id="monthSelect" class="select" disabled aria-required="true">
-                        <option value="">Select Month</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="daySelect" class="input-group__label">Day</label>
-                    <select id="daySelect" class="select" disabled aria-required="true">
-                        <option value="">Select Day</option>
-                    </select>
+            <!-- Accordion: Step 1 - Select Date & Time -->
+            <div class="accordion-section" data-step="1">
+                <button class="accordion-header" id="step1Header" aria-expanded="true">
+                    <span class="accordion-header__title">
+                        <span class="accordion-header__step">Step 1:</span>
+                        <span class="accordion-header__text">Select Date & Time</span>
+                    </span>
+                    <span class="accordion-header__icon">▲</span>
+                </button>
+
+                <div class="accordion-content" id="step1Content">
+                    <!-- Date Selectors -->
+                    <div id="dateTimeControls" class="date-selectors">
+                        <div class="input-group">
+                            <label for="yearSelect" class="input-group__label">Year</label>
+                            <select id="yearSelect" class="select" aria-required="true">
+                                <option value="">Select Year</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="monthSelect" class="input-group__label">Month</label>
+                            <select id="monthSelect" class="select" disabled aria-required="true">
+                                <option value="">Select Month</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="daySelect" class="input-group__label">Day</label>
+                            <select id="daySelect" class="select" disabled aria-required="true">
+                                <option value="">Select Day</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Status Messages -->
+                    <div id="dataStatus" class="status-message" role="alert" aria-live="polite"></div>
+
+                    <!-- Time Selector -->
+                    <section id="timeSelector" class="time-selector" style="display: none;" aria-label="Available scan times">
+                        <h3 class="time-selector__heading">Available Times (Click to Load)</h3>
+                        <div id="timesList" class="times-grid"></div>
+                    </section>
                 </div>
             </div>
 
-            <!-- Status Messages -->
-            <div id="dataStatus" class="status-message" role="alert" aria-live="polite"></div>
-
-            <!-- Time Selector -->
-            <section id="timeSelector" class="time-selector" style="display: none;" aria-label="Available scan times">
-                <h3 class="time-selector__heading">Available Times</h3>
-                <div id="timesList" class="times-grid"></div>
-            </section>
-
-            <!-- Proceed Button -->
-            <button
-                id="proceedBtn"
-                class="btn btn--primary btn--full"
-                disabled
-                aria-label="View radar data for selected site, date, and time"
-            >
-                View Radar Data
-            </button>
-
-            <!-- Radar Display Controls (Hidden initially) -->
-            <div id="radarControls" style="display: none;">
-                <h2 class="panel__heading">Radar Display</h2>
-
-                <div class="input-group">
-                    <label for="scanLevelSelect" class="input-group__label">Scan Level (Elevation)</label>
-                    <select id="scanLevelSelect" class="select">
-                        <option value="">Select Scan</option>
-                    </select>
-                </div>
-
-                <div class="input-group">
-                    <label for="resolutionSelect" class="input-group__label">Resolution</label>
-                    <select id="resolutionSelect" class="select">
-                        <option value="auto">Auto (Based on Data)</option>
-                        <option value="360">Low Resolution (360 radials)</option>
-                        <option value="720">High Resolution (720 radials)</option>
-                    </select>
-                </div>
-
-                <button
-                    id="displayHeatmapBtn"
-                    class="btn btn--primary btn--full"
-                    aria-label="Display radar heatmap"
-                >
-                    Display Heatmap
+            <!-- Accordion: Step 2 - Radar Display -->
+            <div class="accordion-section" data-step="2">
+                <button class="accordion-header" id="step2Header" aria-expanded="false">
+                    <span class="accordion-header__title">
+                        <span class="accordion-header__step">Step 2:</span>
+                        <span class="accordion-header__text">Radar Display</span>
+                    </span>
+                    <span class="accordion-header__icon">▼</span>
                 </button>
 
-                <button
-                    id="backToSelectionBtn"
-                    class="btn btn--secondary btn--full"
-                    aria-label="Back to date/time selection"
-                >
-                    Back to Selection
-                </button>
+                <div class="accordion-content" id="step2Content" style="display: none;">
+                    <!-- Radar Status Messages -->
+                    <div id="radarStatus" class="status-message" role="alert" aria-live="polite"></div>
+
+                    <div id="radarControls">
+                        <div class="input-group">
+                            <label for="resolutionSelect" class="input-group__label">Resolution</label>
+                            <select id="resolutionSelect" class="select">
+                                <option value="">Select Resolution</option>
+                                <option value="auto">Auto (All Scans)</option>
+                                <option value="360">Low Resolution (360 radials)</option>
+                                <option value="720">High Resolution (720 radials)</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="scanLevelSelect" class="input-group__label">Scan Level (Elevation) - Select to Display</label>
+                            <select id="scanLevelSelect" class="select" disabled>
+                                <option value="">Select Resolution First</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
+
         </div>
     </aside>
 

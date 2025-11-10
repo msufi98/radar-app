@@ -248,6 +248,92 @@ body {
 }
 
 /* ============================================
+   Accordion
+   ============================================ */
+.accordion-section {
+  margin-bottom: var(--space-md);
+}
+
+.accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  font-family: inherit;
+}
+
+.accordion-header:hover {
+  background: var(--color-bg-panel-hover);
+  border-color: var(--color-border-hover);
+}
+
+.accordion-header:focus-visible {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(90, 122, 158, 0.1);
+}
+
+.accordion-header[aria-expanded="true"] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
+.accordion-header__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.accordion-header__step {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
+  letter-spacing: 0.025em;
+}
+
+.accordion-header__text {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.025em;
+}
+
+.accordion-header__icon {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
+.accordion-content {
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-bottom-left-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+  padding: var(--space-md);
+  background: var(--color-bg-panel);
+  animation: accordionSlideDown var(--transition-base) ease-out;
+}
+
+@keyframes accordionSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
    Form Elements
    ============================================ */
 
