@@ -13,14 +13,16 @@ let availableSites = null; // Store available sites for selected date
 let rangeRings = []; // Store range ring circles for radar overlay
 let crosshairLines = []; // Store crosshair lines for radar overlay
 let radarOverlay = null; // Store radar heatmap overlay
+let loadingMarker = null; // Store loading marker during radar data fetch
 
 // Zoom feature variables
-let zoomPercentage = 4; // Default 4% of radar circle area
+let zoomLevel = 4; // Discrete zoom level: 1, 2, 4, 8, 16, 32, 64 (default 4x)
 let hoverSquare = null; // Polygon overlay for hover indicator
 let hoverRay = null; // Polyline for ray from center to circumference
 let isMouseOverRadar = false;
 let currentHoverLatLng = null;
 let zoomWindowActive = false;
+let zoomMap = null; // Google Maps instance for zoom window
 window.radarFileData = null;
 
 // Initialize S3 client for public access
@@ -151,7 +153,7 @@ function initMap() {
 function createMarkerContent(site) {
     const pin = document.createElement('div');
     pin.className = 'custom-marker';
-    pin.style.backgroundColor = '#5a7a9e';
+    pin.style.backgroundColor = '#63A361';
     pin.dataset.siteCode = site.code;
     return pin;
 }
@@ -160,7 +162,7 @@ function selectSite(site, marker) {
     selectedSite = site;
 
     document.getElementById('selectedSite').innerHTML = `
-        <strong>Selected:</strong> ${site.code} - ${site.name}, ${site.state}
+        <strong>Selected:</strong>&nbsp;${site.code} - ${site.name}, ${site.state}
     `;
 
     const content = `
@@ -176,13 +178,15 @@ function selectSite(site, marker) {
 
     markers.forEach(({ marker: m, site: s }) => {
         if (m.content) {
-            m.content.style.backgroundColor = s.code === site.code ? '#4a6a8e' : '#5a7a9e';
+            m.content.style.backgroundColor = s.code === site.code ? '#FFC50F' : '#63A361';
             m.content.style.transform = s.code === site.code ? 'scale(1.2)' : 'scale(1)';
         }
     });
 
-    if (selectedDate) {
-        checkDataAvailability();
+    // Enable the "Select Radar" button
+    const selectRadarBtn = document.getElementById('selectRadarBtn');
+    if (selectRadarBtn) {
+        selectRadarBtn.disabled = false;
     }
 }
 
@@ -380,24 +384,29 @@ function filterMarkersBySiteAvailability() {
         // Check if site is available for selected date
         const isAvailable = availableSites === null || availableSites.includes(site.code);
 
-        // Show marker only if it matches search (keep unavailable sites visible but grayed)
-        marker.map = matchesSearch ? map : null;
+        // Keep all markers visible (don't hide based on search)
+        marker.map = map;
 
-        // Update marker appearance based on availability
+        // Update marker appearance based on search match and availability
         if (marker.content) {
-            if (!isAvailable) {
-                // Gray out unavailable sites
+            if (!matchesSearch) {
+                // Gray out sites that don't match search (same style as unavailable)
+                marker.content.style.backgroundColor = '#cbd5e0';
+                marker.content.style.opacity = '1';
+                marker.content.style.transform = 'scale(1)';
+            } else if (!isAvailable) {
+                // Gray out unavailable sites (but keep normal size since they match search)
                 marker.content.style.backgroundColor = '#cbd5e0';
                 marker.content.style.opacity = '1';
                 marker.content.style.transform = 'scale(1)';
             } else if (site.code === selectedSite?.code) {
                 // Highlight selected site
-                marker.content.style.backgroundColor = '#4a6a8e';
+                marker.content.style.backgroundColor = '#FFC50F';
                 marker.content.style.transform = 'scale(1.2)';
                 marker.content.style.opacity = '1';
             } else {
-                // Normal available site
-                marker.content.style.backgroundColor = '#5a7a9e';
+                // Normal available site that matches search
+                marker.content.style.backgroundColor = '#63A361';
                 marker.content.style.transform = 'scale(1)';
                 marker.content.style.opacity = '1';
             }
@@ -547,6 +556,24 @@ function displayAvailableTimes(files) {
                 item.classList.remove('selected');
             });
             timeItem.classList.add('selected');
+
+            // Add date/time to info card
+            const cardDateTime = document.getElementById('cardDateTime');
+            const cardDate = document.getElementById('cardDate');
+            const cardTime = document.getElementById('cardTime');
+            const cardTimeValue = document.getElementById('cardTimeValue');
+
+            if (cardDateTime && selectedDate) {
+                cardDateTime.style.display = 'flex';
+                cardDate.textContent = selectedDate;
+            }
+            if (cardTime) {
+                cardTime.style.display = 'flex';
+                cardTimeValue.textContent = time.display;
+            }
+
+            // Progress to Step 3
+            progressToStep3();
 
             // Set selected time and load radar data
             selectedTime = time.fileName;
@@ -836,26 +863,134 @@ function createRangeRings(center, maxRange, numRings = 5) {
     });
 }
 
+/**
+ * Create a loading marker on the map during radar data fetch
+ */
+function createLoadingMarker(position) {
+    // Remove any existing loading marker
+    removeLoadingMarker();
+
+    // Create the HTML content for the marker
+    const markerContent = document.createElement('div');
+    markerContent.className = 'radar-loading-marker';
+
+    // Radar icon (simplified radar scanning icon)
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'radar-loading-marker__icon';
+    iconDiv.innerHTML = `
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6h2c0-2.21 1.79-4 4-4s4 1.79 4 4h2c0-3.31-2.69-6-6-6z"/>
+        </svg>
+    `;
+
+    // Loading text with spinner
+    const textDiv = document.createElement('div');
+    textDiv.className = 'radar-loading-marker__text';
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = 'Loading';
+
+    const spinnerSpan = document.createElement('span');
+    spinnerSpan.className = 'radar-loading-marker__spinner';
+
+    textDiv.appendChild(textSpan);
+    textDiv.appendChild(spinnerSpan);
+
+    markerContent.appendChild(iconDiv);
+    markerContent.appendChild(textDiv);
+
+    // Create the AdvancedMarkerElement
+    loadingMarker = new google.maps.marker.AdvancedMarkerElement({
+        position: position,
+        map: map,
+        content: markerContent,
+        title: 'Loading radar data'
+    });
+
+    console.log('Loading marker created at', position);
+}
+
+/**
+ * Remove the loading marker from the map
+ */
+function removeLoadingMarker() {
+    if (loadingMarker) {
+        loadingMarker.map = null;
+        loadingMarker = null;
+        console.log('Loading marker removed');
+    }
+}
+
+/**
+ * Restrict map interaction to radar area
+ * Limits panning and zooming when viewing radar data
+ */
+function restrictMapToRadarArea(radarCenter) {
+    // Calculate bounds (approximately 300km radius from radar site)
+    const latOffset = 2.7; // Roughly 300km in latitude degrees
+    const lngOffset = 3.5; // Roughly 300km in longitude degrees (varies by latitude)
+
+    const bounds = {
+        north: radarCenter.lat + latOffset,
+        south: radarCenter.lat - latOffset,
+        east: radarCenter.lng + lngOffset,
+        west: radarCenter.lng - lngOffset
+    };
+
+    // Set map restriction
+    map.setOptions({
+        restriction: {
+            latLngBounds: bounds,
+            strictBounds: false // Allow slight overpanning
+        },
+        minZoom: 7,
+        maxZoom: 12,
+        gestureHandling: 'greedy' // Still allow all gestures, but within bounds
+    });
+
+    console.log('Map restricted to radar area:', bounds);
+}
+
+/**
+ * Remove map restrictions and restore full interaction
+ */
+function removeMapRestrictions() {
+    map.setOptions({
+        restriction: null,
+        minZoom: 3,
+        maxZoom: 20,
+        gestureHandling: 'greedy'
+    });
+
+    console.log('Map restrictions removed');
+}
+
 async function loadRadarData() {
     const radarStatusDiv = document.getElementById('radarStatus');
 
-    // Immediately switch to Step 2 to show loading progress
-    const step1Header = document.getElementById('step1Header');
-    const step1Content = document.getElementById('step1Content');
-    const step2Header = document.getElementById('step2Header');
+    // Enable and expand Step 3
     const step2Content = document.getElementById('step2Content');
+    const step3Section = document.querySelector('[data-step="3"]');
+    const step3Header = document.getElementById('step3Header');
+    const step3Content = document.getElementById('step3Content');
 
-    // Collapse Step 1
-    step1Header.setAttribute('aria-expanded', 'false');
-    step1Content.style.display = 'none';
-    step1Header.querySelector('.accordion-header__icon').textContent = '▼';
+    // Collapse Step 2
+    if (step2Content) {
+        step2Content.style.display = 'none';
+    }
 
-    // Expand Step 2
-    step2Header.setAttribute('aria-expanded', 'true');
-    step2Content.style.display = 'block';
-    step2Header.querySelector('.accordion-header__icon').textContent = '▲';
+    // Enable and expand Step 3
+    if (step3Section) {
+        step3Section.classList.remove('accordion-section--disabled');
+    }
+    if (step3Header) {
+        step3Header.setAttribute('aria-expanded', 'true');
+    }
+    if (step3Content) {
+        step3Content.style.display = 'block';
+    }
 
-    // Show loading progress in radar status (Step 2)
+    // Show loading progress in radar status (Step 3)
     radarStatusDiv.className = 'status-message loading';
     radarStatusDiv.innerHTML = '<span class="spinner"></span> Loading radar data...';
 
@@ -868,6 +1003,12 @@ async function loadRadarData() {
     const radarCenter = { lat: selectedSite.lat, lng: selectedSite.lon };
     map.setCenter(radarCenter);
     map.setZoom(8);
+
+    // Show loading marker on the map
+    createLoadingMarker(radarCenter);
+
+    // Restrict map panning and zooming to radar area
+    restrictMapToRadarArea(radarCenter);
 
     // Construct the S3 URI for the file
     const s3Uri = `s3://unidata-nexrad-level2/${selectedDate}/${selectedSite.code}/${selectedTime}`;
@@ -908,18 +1049,32 @@ async function loadRadarData() {
             `${timeMatch[1].substring(0, 2)}:${timeMatch[1].substring(2, 4)}:${timeMatch[1].substring(4, 6)} UTC` :
             selectedTime;
 
-        // Display parsed information in radar status (Step 2)
+        // Display success message in radar status (Step 3) - simplified
         radarStatusDiv.className = 'status-message success';
         radarStatusDiv.innerHTML = `
-            <span class="checkmark">✓</span> Radar data downloaded successfully!<br>
-            <strong>Site:</strong> ${nexradFile.volumeHeader.icao.trim()}<br>
-            <strong>Date:</strong> ${selectedDate}<br>
-            <strong>Time:</strong> ${timeStr}<br>
-            <strong>VCP:</strong> ${nexradFile.getVCPPattern()}<br>
-            <strong>Scans:</strong> ${nexradFile.nscans}<br>
-            <strong>Radials:</strong> ${nexradFile.radialRecords.length}<br>
-            <strong>Max Range:</strong> ${(maxRange / 1000).toFixed(1)} km
+            <span class="checkmark">✓</span> Radar data loaded successfully! Select resolution and scan level to display.
         `;
+
+        // Add radar data info to card
+        const cardVCP = document.getElementById('cardVCP');
+        const cardVCPValue = document.getElementById('cardVCPValue');
+        const cardScans = document.getElementById('cardScans');
+        const cardScansValue = document.getElementById('cardScansValue');
+        const cardRange = document.getElementById('cardRange');
+        const cardRangeValue = document.getElementById('cardRangeValue');
+
+        if (cardVCP) {
+            cardVCP.style.display = 'flex';
+            cardVCPValue.textContent = nexradFile.getVCPPattern();
+        }
+        if (cardScans) {
+            cardScans.style.display = 'flex';
+            cardScansValue.textContent = nexradFile.nscans;
+        }
+        if (cardRange) {
+            cardRange.style.display = 'flex';
+            cardRangeValue.textContent = `${(maxRange / 1000).toFixed(1)} km`;
+        }
 
         // Store the parsed data for the viewer
         window.radarFileData = {
@@ -932,11 +1087,18 @@ async function loadRadarData() {
 
         console.log('Radar data ready for viewer');
 
+        // Remove loading marker now that data is loaded
+        removeLoadingMarker();
+
         // Switch to radar display controls
         showRadarControls(nexradFile);
 
     } catch (error) {
         console.error('Error loading radar data:', error);
+
+        // Remove loading marker on error
+        removeLoadingMarker();
+
         radarStatusDiv.className = 'status-message error';
         radarStatusDiv.innerHTML = `
             <span class="error-icon">✗</span> Failed to load radar data<br>
@@ -949,7 +1111,7 @@ async function loadRadarData() {
  * Show radar display controls and hide date/time selection
  */
 function showRadarControls(nexradFile) {
-    // Note: Step 1/Step 2 accordion switching is now handled at the start of loadRadarData()
+    // Note: Step 2/Step 3 accordion switching is now handled at the start of loadRadarData()
     // to provide immediate visual feedback
 
     // Store radar file globally for resolution filtering
@@ -1021,7 +1183,7 @@ function filterScanLevelsByResolution(resolution) {
     filteredScans.forEach(scan => {
         const option = document.createElement('option');
         option.value = scan.index;
-        option.textContent = `Scan ${scan.index + 1}: ${scan.elevAngle.toFixed(2)}° (${scan.nrays} radials)`;
+        option.textContent = `${scan.elevAngle.toFixed(2)}° (${scan.nrays} radials)`;
         scanLevelSelect.appendChild(option);
     });
 
@@ -1035,21 +1197,48 @@ function filterScanLevelsByResolution(resolution) {
  * Hide radar controls and show date/time selection
  */
 function hideRadarControls() {
-    // Expand Step 1, collapse Step 2
-    const step1Header = document.getElementById('step1Header');
+    // Reset to Step 1
     const step1Content = document.getElementById('step1Content');
-    const step2Header = document.getElementById('step2Header');
+    const step2Section = document.querySelector('[data-step="2"]');
     const step2Content = document.getElementById('step2Content');
+    const step3Section = document.querySelector('[data-step="3"]');
+    const step3Content = document.getElementById('step3Content');
 
     // Expand Step 1
-    step1Header.setAttribute('aria-expanded', 'true');
-    step1Content.style.display = 'block';
-    step1Header.querySelector('.accordion-header__icon').textContent = '▲'; // Up when expanded
+    if (step1Content) {
+        step1Content.style.display = 'block';
+    }
 
-    // Collapse Step 2
-    step2Header.setAttribute('aria-expanded', 'false');
-    step2Content.style.display = 'none';
-    step2Header.querySelector('.accordion-header__icon').textContent = '▼'; // Down when collapsed
+    // Disable and collapse Step 2
+    if (step2Section) {
+        step2Section.classList.add('accordion-section--disabled');
+    }
+    if (step2Content) {
+        step2Content.style.display = 'none';
+    }
+
+    // Disable and collapse Step 3
+    if (step3Section) {
+        step3Section.classList.add('accordion-section--disabled');
+    }
+    if (step3Content) {
+        step3Content.style.display = 'none';
+    }
+
+    // Hide precipitation panel and reset info card
+    const precipitationPanel = document.querySelector('.panel--precipitation');
+    if (precipitationPanel) {
+        precipitationPanel.style.display = 'none';
+    }
+
+    // Reset info card
+    const dataInfoCard = document.getElementById('dataInfoCard');
+    if (dataInfoCard) {
+        dataInfoCard.style.display = 'none';
+    }
+    // Hide all card items
+    const cardItems = document.querySelectorAll('.data-info-item');
+    cardItems.forEach(item => item.style.display = 'none');
 
     // Hide legend
     hideLegend();
@@ -1068,6 +1257,10 @@ function hideRadarControls() {
         radarOverlay.setMap(null);
         radarOverlay = null;
     }
+
+    // Remove map restrictions and loading marker
+    removeMapRestrictions();
+    removeLoadingMarker();
 
     // Restore markers
     filterMarkersBySiteAvailability();
@@ -1134,23 +1327,72 @@ function resetFilters() {
         timesList.innerHTML = '';
     }
 
-    // Expand Step 1, collapse Step 2 (accordion management)
+    // Reset accordion to initial state
     const step1Header = document.getElementById('step1Header');
     const step1Content = document.getElementById('step1Content');
+    const step1Status = document.getElementById('step1Status');
+    const step2Section = document.querySelector('[data-step="2"]');
     const step2Header = document.getElementById('step2Header');
     const step2Content = document.getElementById('step2Content');
+    const step2Status = document.getElementById('step2Status');
+    const step3Section = document.querySelector('[data-step="3"]');
+    const step3Header = document.getElementById('step3Header');
+    const step3Content = document.getElementById('step3Content');
+    const step3Status = document.getElementById('step3Status');
 
+    // Reset Step 1
     if (step1Header && step1Content) {
         step1Header.setAttribute('aria-expanded', 'true');
         step1Content.style.display = 'block';
-        step1Header.querySelector('.accordion-header__icon').textContent = '▲'; // Up when expanded
+    }
+    if (step1Status) {
+        step1Status.textContent = '';
     }
 
+    // Reset and disable Step 2
+    if (step2Section) {
+        step2Section.classList.add('accordion-section--disabled');
+    }
     if (step2Header && step2Content) {
         step2Header.setAttribute('aria-expanded', 'false');
         step2Content.style.display = 'none';
-        step2Header.querySelector('.accordion-header__icon').textContent = '▼'; // Down when collapsed
     }
+    if (step2Status) {
+        step2Status.textContent = '';
+    }
+
+    // Reset and disable Step 3
+    if (step3Section) {
+        step3Section.classList.add('accordion-section--disabled');
+    }
+    if (step3Header && step3Content) {
+        step3Header.setAttribute('aria-expanded', 'false');
+        step3Content.style.display = 'none';
+    }
+    if (step3Status) {
+        step3Status.textContent = '';
+    }
+
+    // Disable "Select Radar" button
+    const selectRadarBtn = document.getElementById('selectRadarBtn');
+    if (selectRadarBtn) {
+        selectRadarBtn.disabled = true;
+    }
+
+    // Hide precipitation panel and reset info card
+    const precipitationPanel = document.querySelector('.panel--precipitation');
+    if (precipitationPanel) {
+        precipitationPanel.style.display = 'none';
+    }
+
+    // Reset info card
+    const dataInfoCard = document.getElementById('dataInfoCard');
+    if (dataInfoCard) {
+        dataInfoCard.style.display = 'none';
+    }
+    // Hide all card items
+    const cardItems = document.querySelectorAll('.data-info-item');
+    cardItems.forEach(item => item.style.display = 'none');
 
     // Hide legend
     hideLegend();
@@ -1169,6 +1411,10 @@ function resetFilters() {
         radarOverlay.setMap(null);
         radarOverlay = null;
     }
+
+    // Remove map restrictions and loading marker
+    removeMapRestrictions();
+    removeLoadingMarker();
 
     // Reset all markers to default state
     filterMarkersBySiteAvailability();
@@ -1205,24 +1451,6 @@ async function displayRadarHeatmap(scanIndex, resolution) {
     const radarStatusDiv = document.getElementById('radarStatus');
 
     console.log(`Generating heatmap for scan ${scanIndex}, resolution: ${resolution}`);
-
-    // Expand Step 2 & Step 3 simultaneously
-    const step2Header = document.getElementById('step2Header');
-    const step2Content = document.getElementById('step2Content');
-    const step3Header = document.getElementById('step3Header');
-    const step3Content = document.getElementById('step3Content');
-
-    if (step2Header && step2Content) {
-        step2Header.setAttribute('aria-expanded', 'true');
-        step2Content.style.display = 'block';
-        step2Header.querySelector('.accordion-header__icon').textContent = '▲';
-    }
-
-    if (step3Header && step3Content) {
-        step3Header.setAttribute('aria-expanded', 'true');
-        step3Content.style.display = 'block';
-        step3Header.querySelector('.accordion-header__icon').textContent = '▲';
-    }
 
     // Show generating message
     radarStatusDiv.className = 'status-message loading';
@@ -1355,18 +1583,26 @@ async function displayRadarHeatmap(scanIndex, resolution) {
         `${timeMatch[1].substring(0, 2)}:${timeMatch[1].substring(2, 4)}:${timeMatch[1].substring(4, 6)} UTC` :
         radarData.fileName;
 
-    // Update status with scan information
+    // Update status - simplified
     radarStatusDiv.className = 'status-message success';
     radarStatusDiv.innerHTML = `
-        <span class="checkmark">✓</span> Heatmap displayed successfully!<br>
-        <strong>Site:</strong> ${radarData.site.code}<br>
-        <strong>Date:</strong> ${radarData.date}<br>
-        <strong>Time:</strong> ${timeStr}<br>
-        <strong>Elevation:</strong> ${elevAngle.toFixed(2)}°<br>
-        <strong>Radials:</strong> ${nrays}<br>
-        <strong>Gates:</strong> ${ngates}<br>
-        <strong>Reflectivity:</strong> ${minVal.toFixed(1)} to ${maxVal.toFixed(1)} dBZ
+        <span class="checkmark">✓</span> Scan displayed successfully! ${nrays} radials × ${ngates} gates
     `;
+
+    // Update info card with current scan details
+    const cardElevation = document.getElementById('cardElevation');
+    const cardElevationValue = document.getElementById('cardElevationValue');
+    const cardReflectivity = document.getElementById('cardReflectivity');
+    const cardReflectivityValue = document.getElementById('cardReflectivityValue');
+
+    if (cardElevation) {
+        cardElevation.style.display = 'flex';
+        cardElevationValue.textContent = `${elevAngle.toFixed(2)}°`;
+    }
+    if (cardReflectivity) {
+        cardReflectivity.style.display = 'flex';
+        cardReflectivityValue.textContent = `${minVal.toFixed(1)} to ${maxVal.toFixed(1)} dBZ`;
+    }
 
     // Show and update the legend
     updateLegend(minVal, maxVal);
@@ -1501,32 +1737,40 @@ function enableZoomFeature() {
         }
     });
 
-    // Add mouse wheel listener for zoom percentage
-    const wheelListener = map.addListener('wheel', (event) => {
+    // Add mouse wheel listener for zoom percentage (prevent map zoom when over radar)
+    const wheelHandler = (event) => {
         if (!isMouseOverRadar) return;
 
-        event.stop(); // Prevent map zoom
-        const delta = event.domEvent.deltaY;
+        event.preventDefault(); // Prevent map zoom
+        event.stopPropagation();
+
+        const delta = event.deltaY;
+        const oldZoomLevel = zoomLevel;
 
         if (delta < 0) {
-            // Scroll up - increase zoom
-            zoomPercentage = Math.min(10, zoomPercentage + 2);
+            // Scroll up - increase zoom (double)
+            zoomLevel = Math.min(64, zoomLevel * 2);
         } else {
-            // Scroll down - decrease zoom
-            zoomPercentage = Math.max(2, zoomPercentage - 2);
+            // Scroll down - decrease zoom (halve)
+            zoomLevel = Math.max(1, zoomLevel / 2);
         }
 
-        document.getElementById('zoomPercentageValue').textContent = zoomPercentage;
+        console.log(`Wheel: ${oldZoomLevel}× -> ${zoomLevel}×`);
 
         // Update indicators and zoom window
         if (currentHoverLatLng) {
             updateHoverIndicators(currentHoverLatLng, radarCenter, maxRange);
             updateZoomWindow(currentHoverLatLng, radarCenter);
         }
-    });
+    };
+
+    // Add wheel event to the map div element directly
+    const mapDiv = map.getDiv();
+    mapDiv.addEventListener('wheel', wheelHandler, { passive: false });
+    window.wheelHandlerRef = wheelHandler;
 
     // Store listeners for cleanup
-    window.zoomListeners = [mouseMoveListener, wheelListener];
+    window.zoomListeners = [mouseMoveListener];
 }
 
 /**
@@ -1544,6 +1788,13 @@ function disableZoomFeature() {
         window.zoomListeners.forEach(listener => google.maps.event.removeListener(listener));
         window.zoomListeners = null;
     }
+
+    // Remove wheel event listener
+    if (window.wheelHandlerRef && map) {
+        const mapDiv = map.getDiv();
+        mapDiv.removeEventListener('wheel', window.wheelHandlerRef);
+        window.wheelHandlerRef = null;
+    }
 }
 
 /**
@@ -1552,18 +1803,29 @@ function disableZoomFeature() {
 function updateHoverIndicators(latLng, radarCenter, maxRange) {
     const { azimuth, range } = latLngToRadarCoords(latLng, radarCenter);
 
-    // Calculate square size based on zoom percentage
-    // zoomPercentage is % of circle area, so side = sqrt(area * percent / 100) * 2
-    const areaFraction = zoomPercentage / 100;
-    const squareRadius = Math.sqrt(Math.PI * maxRange * maxRange * areaFraction) / Math.sqrt(Math.PI);
-    const squareSide = squareRadius * 1.5; // Make it visible
+    // Calculate visible range based on zoom level
+    // zoomLevel is discrete: 1, 2, 4, 8, 16, 32, 64
+    // visibleRange = maxRange / zoomLevel (e.g., zoom 4 shows 25% of max range)
+    const visibleRange = maxRange / zoomLevel; // Radius of visible area
+    const squareSide = visibleRange * 2; // Full width of square
 
-    // Create square corners
+    // Debug log (throttled)
+    if (!window.squareDebugCounter) window.squareDebugCounter = 0;
+    window.squareDebugCounter++;
+    if (window.squareDebugCounter % 5 === 1) {
+        console.log(`Zoom ${zoomLevel}×: visible range ${(visibleRange/1000).toFixed(2)} km (${(visibleRange/maxRange*100).toFixed(1)}% of max range)`);
+    }
+
+    // Create upright square corners by going from center to each corner
+    // Diagonal distance from center to corner is: squareSide / sqrt(2)
+    const halfSide = squareSide / 2;
+    const diagonalToCorner = halfSide * Math.sqrt(2); // Distance from center to corner
+
     const squareCorners = [
-        calculateDestinationPoint(latLng, squareSide / Math.sqrt(2), azimuth + 45),
-        calculateDestinationPoint(latLng, squareSide / Math.sqrt(2), azimuth + 135),
-        calculateDestinationPoint(latLng, squareSide / Math.sqrt(2), azimuth + 225),
-        calculateDestinationPoint(latLng, squareSide / Math.sqrt(2), azimuth + 315)
+        calculateDestinationPoint(latLng, diagonalToCorner, 45),   // NE corner
+        calculateDestinationPoint(latLng, diagonalToCorner, 135),  // SE corner
+        calculateDestinationPoint(latLng, diagonalToCorner, 225),  // SW corner
+        calculateDestinationPoint(latLng, diagonalToCorner, 315)   // NW corner
     ];
 
     // Update or create square
@@ -1616,20 +1878,82 @@ function clearHoverIndicators() {
 }
 
 /**
+ * Initialize the zoom map
+ */
+function initializeZoomMap() {
+    if (zoomMap) return; // Already initialized
+
+    const zoomMapDiv = document.getElementById('zoomMap');
+    if (!zoomMapDiv) return;
+
+    zoomMap = new google.maps.Map(zoomMapDiv, {
+        zoom: 15,
+        center: { lat: 0, lng: 0 },
+        mapTypeId: google.maps.MapTypeId.TERRAIN,
+        disableDefaultUI: true,
+        gestureHandling: 'none',
+        zoomControl: false,
+        mapTypeControl: false,
+        scaleControl: false,
+        streetViewControl: false,
+        rotateControl: false,
+        fullscreenControl: false
+    });
+}
+
+/**
  * Update zoom window with detailed radar data
  */
 function updateZoomWindow(latLng, radarCenter) {
     if (!window.radarFileData) return;
 
+    // Initialize zoom map if not already done
+    if (!zoomMap) {
+        initializeZoomMap();
+    }
+
     const { azimuth, range } = latLngToRadarCoords(latLng, radarCenter);
-    const canvas = document.getElementById('zoomCanvas');
     const coordsDiv = document.getElementById('zoomCoords');
 
     // Update coordinates display
-    coordsDiv.textContent = `${latLng.lat.toFixed(4)}°, ${latLng.lng.toFixed(4)}° | ${(range / 1000).toFixed(1)} km`;
+    coordsDiv.textContent = `${latLng.lat.toFixed(4)}°, ${latLng.lng.toFixed(4)}° | ${(range / 1000).toFixed(1)} km | Az: ${azimuth.toFixed(1)}°`;
 
-    // Set canvas size
-    const canvasSize = 280;
+    // Calculate square size (same calculation as in updateHoverIndicators)
+    const areaFraction = zoomPercentage / 100;
+    const circleArea = Math.PI * window.radarFileData.maxRange * window.radarFileData.maxRange;
+    const squareArea = circleArea * areaFraction;
+    const squareSide = Math.sqrt(squareArea); // Side length of square in meters
+
+    // windowSize is half the square side (radius of the view)
+    const windowSize = squareSide / 2;
+
+    // Calculate appropriate Google Maps zoom level
+    // Use formula: googleMapsZoom = 7 + log₂(zoomLevel)
+    // This matches the reference implementation approach
+    const googleMapsZoom = 7 + Math.log2(zoomLevel);
+    const clampedZoom = Math.max(8, Math.min(18, Math.round(googleMapsZoom)));
+
+    // Update map center and zoom (force update by setting zoom first)
+    if (zoomMap.getZoom() !== clampedZoom) {
+        zoomMap.setZoom(clampedZoom);
+    }
+    zoomMap.setCenter(latLng);
+
+    console.log(`Radar Zoom: ${zoomLevel}×, Google Maps Zoom: ${clampedZoom} (calc: ${googleMapsZoom.toFixed(2)}), Visible Range: ${(visibleRange/1000).toFixed(2)}km`);
+
+    // Now draw radar data on the overlay canvas
+    drawRadarOverlay(latLng, radarCenter, windowSize);
+}
+
+/**
+ * Draw radar data on the overlay canvas
+ * STEP 1: Just draw the square outline to verify geographic alignment
+ */
+function drawRadarOverlay(latLng, radarCenter, windowSize) {
+    const canvas = document.getElementById('zoomCanvas');
+    if (!canvas) return;
+
+    const canvasSize = 330;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = canvasSize * dpr;
     canvas.height = canvasSize * dpr;
@@ -1640,111 +1964,103 @@ function updateZoomWindow(latLng, radarCenter) {
     ctx.scale(dpr, dpr);
 
     // Clear canvas
-    ctx.fillStyle = '#f0f0f0';
-    ctx.fillRect(0, 0, canvasSize, canvasSize);
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-    // Get radar data
-    const nexradFile = window.radarFileData.nexradFile;
-    const scanIndex = window.currentScanIndex;
-    if (scanIndex === undefined) return;
+    // For now, just draw a square outline to show the area we're viewing
+    // This should match the white square on the main map
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, canvasSize, canvasSize);
 
-    const scan = nexradFile.scans[scanIndex];
-    const refData = nexradFile.get_data('REF', scan.ngates, [scanIndex], false)[0];
-    const azimuths = nexradFile.get_azimuth_angles([scanIndex]);
-    const ranges = nexradFile.get_range(scanIndex, 'REF');
+    // Draw crosshair at center to show the hover point
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(canvasSize / 2, 0);
+    ctx.lineTo(canvasSize / 2, canvasSize);
+    ctx.moveTo(0, canvasSize / 2);
+    ctx.lineTo(canvasSize, canvasSize / 2);
+    ctx.stroke();
 
-    // Calculate zoom area extent
-    const areaFraction = zoomPercentage / 100;
-    const zoomRadius = Math.sqrt(Math.PI * window.radarFileData.maxRange * window.radarFileData.maxRange * areaFraction) / Math.sqrt(Math.PI);
-
-    // Find data cells within zoom area
-    const cellSize = canvasSize / 20; // Show ~20 cells across
-    const cells = [];
-
-    for (let rayIdx = 0; rayIdx < refData.length; rayIdx++) {
-        const rayAz = azimuths[rayIdx];
-        const rayData = refData[rayIdx];
-
-        for (let gateIdx = 0; gateIdx < rayData.length; gateIdx++) {
-            const gateRange = ranges[gateIdx];
-            const value = rayData[gateIdx];
-
-            // Check if this cell is within zoom radius of hover point
-            const cellDist = Math.abs(gateRange - range);
-            const azDiff = Math.min(Math.abs(rayAz - azimuth), 360 - Math.abs(rayAz - azimuth));
-            const azDist = gateRange * Math.sin(azDiff * Math.PI / 180);
-
-            if (cellDist < zoomRadius && azDist < zoomRadius && value !== null && !isNaN(value)) {
-                cells.push({ rayAz, gateRange, value });
-            }
-        }
-    }
-
-    // Draw cells
-    const minVal = Math.min(...cells.map(c => c.value));
-    const maxVal = Math.max(...cells.map(c => c.value));
-
-    cells.forEach(cell => {
-        // Convert polar to canvas coords
-        const relRange = cell.gateRange - range + zoomRadius;
-        const relAz = cell.rayAz - azimuth;
-        const x = canvasSize / 2 + (relRange / zoomRadius) * (canvasSize / 2) * Math.sin(relAz * Math.PI / 180);
-        const y = canvasSize / 2 - (relRange / zoomRadius) * (canvasSize / 2) * Math.cos(relAz * Math.PI / 180);
-
-        // Get color
-        const normalized = (cell.value - minVal) / (maxVal - minVal);
-        const color = valueToRainbowColor(normalized);
-
-        // Draw cell
-        ctx.fillStyle = color;
-        ctx.fillRect(x - cellSize / 2, y - cellSize / 2, cellSize, cellSize);
-
-        // Draw cell border
-        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(x - cellSize / 2, y - cellSize / 2, cellSize, cellSize);
-    });
+    // Draw text showing zoom level and window size
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Zoom: ${zoomLevel}× | Range: ${(windowSize / 1000).toFixed(1)} km`, canvasSize / 2, 20);
+    ctx.fillText(`(${((windowSize / maxRange) * 100).toFixed(1)}% of max range)`, canvasSize / 2, 35);
 }
 
-// Accordion toggle functionality
-function toggleAccordion(headerElement, contentElement) {
-    const isExpanded = headerElement.getAttribute('aria-expanded') === 'true';
-    const icon = headerElement.querySelector('.accordion-header__icon');
-
-    if (isExpanded) {
-        // Collapse
-        headerElement.setAttribute('aria-expanded', 'false');
-        contentElement.style.display = 'none';
-        icon.textContent = '▼'; // Down arrow when collapsed
-    } else {
-        // Expand
-        headerElement.setAttribute('aria-expanded', 'true');
-        contentElement.style.display = 'block';
-        icon.textContent = '▲'; // Up arrow when expanded
-    }
-}
-
-// Setup accordion event listeners
-document.addEventListener('DOMContentLoaded', () => {
-    const step1Header = document.getElementById('step1Header');
+/**
+ * Progress to the next step in the linear workflow
+ */
+function progressToStep2() {
+    // Collapse Step 1
     const step1Content = document.getElementById('step1Content');
+    const step1Status = document.getElementById('step1Status');
+    const step2Section = document.querySelector('[data-step="2"]');
     const step2Header = document.getElementById('step2Header');
     const step2Content = document.getElementById('step2Content');
-    const step3Header = document.getElementById('step3Header');
-    const step3Content = document.getElementById('step3Content');
 
-    // Add click handlers for accordion headers
-    step1Header.addEventListener('click', () => {
-        toggleAccordion(step1Header, step1Content);
-    });
+    if (step1Content) {
+        step1Content.style.display = 'none';
+    }
+    if (step1Status) {
+        step1Status.textContent = '✓';
+    }
 
-    step2Header.addEventListener('click', () => {
-        toggleAccordion(step2Header, step2Content);
-    });
+    // Enable and expand Step 2
+    if (step2Section) {
+        step2Section.classList.remove('accordion-section--disabled');
+    }
+    if (step2Header) {
+        step2Header.setAttribute('aria-expanded', 'true');
+    }
+    if (step2Content) {
+        step2Content.style.display = 'block';
+    }
 
-    step3Header.addEventListener('click', () => {
-        toggleAccordion(step3Header, step3Content);
-    });
+    // Show right panel and add site info to card
+    const precipitationPanel = document.querySelector('.panel--precipitation');
+    const dataInfoCard = document.getElementById('dataInfoCard');
+    const cardSiteInfo = document.getElementById('cardSiteInfo');
+    const cardSiteName = document.getElementById('cardSiteName');
+
+    if (precipitationPanel) {
+        precipitationPanel.style.display = 'block';
+    }
+    if (dataInfoCard) {
+        dataInfoCard.style.display = 'block';
+    }
+    if (cardSiteInfo && selectedSite) {
+        cardSiteInfo.style.display = 'flex';
+        cardSiteName.textContent = `${selectedSite.code} - ${selectedSite.name}, ${selectedSite.state}`;
+    }
+}
+
+/**
+ * Progress to Step 3 after time is selected
+ */
+function progressToStep3() {
+    // Mark Step 2 as complete
+    const step2Status = document.getElementById('step2Status');
+    if (step2Status) {
+        step2Status.textContent = '✓';
+    }
+
+    // Note: Step 3 is enabled by loadRadarData function
+}
+
+// Setup event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // "Select Radar" button handler
+    const selectRadarBtn = document.getElementById('selectRadarBtn');
+    if (selectRadarBtn) {
+        selectRadarBtn.addEventListener('click', () => {
+            if (selectedSite) {
+                progressToStep2();
+            }
+        });
+    }
 
     // Initialize the app
     initializeApp();

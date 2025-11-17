@@ -10,16 +10,12 @@
     <!-- Full-screen Map Container -->
     <div id="map" role="application" aria-label="Interactive map of NEXRAD radar sites"></div>
 
-    <!-- Header -->
-    <header class="app-header">
-        <h1 class="app-title">NEXRAD Level 2 Radar Viewer</h1>
-    </header>
-
-    <!-- Site Search Panel (Floating Top-Left) -->
-    <aside class="panel panel--search" aria-label="Radar site search">
+    <!-- Unified Left Panel -->
+    <aside class="panel panel--left" aria-label="Radar site and data selection">
         <div class="panel__content">
-            <div class="search-header">
-                <label for="siteSearch" class="panel__label">Search Radar Sites</label>
+            <!-- Header moved inside left panel -->
+            <header class="panel-header">
+                <h1 class="panel-header__title">NEXRAD Level 2 Radar Viewer</h1>
                 <button
                     id="resetBtn"
                     class="btn btn--reset"
@@ -28,49 +24,51 @@
                 >
                     Reset
                 </button>
-            </div>
-            <input
-                type="text"
-                id="siteSearch"
-                class="input input--search"
-                placeholder="Search by code, name, or state..."
-                aria-describedby="searchHelp"
-            >
-            <div id="selectedSite" class="site-selection" role="status" aria-live="polite"></div>
-        </div>
-    </aside>
+            </header>
 
-    <!-- Reflectivity Legend (Floating Bottom-Left) -->
-    <aside id="reflectivityLegend" class="legend" style="display: none;" aria-label="Reflectivity scale legend">
-        <div class="legend__content">
-            <h3 class="legend__title">Reflectivity (dBZ)</h3>
-            <div class="legend__scale-container">
-                <canvas id="legendCanvas" class="legend__canvas"></canvas>
-                <svg id="legendTicks" class="legend__ticks"></svg>
-            </div>
-            <div class="legend__labels">
-                <span class="legend__label legend__label--min" id="legendMin"></span>
-                <span class="legend__label legend__label--mid" id="legendMid"></span>
-                <span class="legend__label legend__label--max" id="legendMax"></span>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Date & Time Selection Panel (Floating Right) -->
-    <aside class="panel panel--datetime" aria-label="Date and time selection">
-        <div class="panel__content">
-
-            <!-- Accordion: Step 1 - Select Date & Time -->
+            <!-- Accordion: Step 1 - Select Radar Site -->
             <div class="accordion-section" data-step="1">
-                <button class="accordion-header" id="step1Header" aria-expanded="true">
+                <div class="accordion-header accordion-header--static" id="step1Header" aria-expanded="true">
                     <span class="accordion-header__title">
                         <span class="accordion-header__step">Step 1:</span>
-                        <span class="accordion-header__text">Select Date & Time</span>
+                        <span class="accordion-header__text">Select Radar Site</span>
                     </span>
-                    <span class="accordion-header__icon">▲</span>
-                </button>
+                    <span class="accordion-header__status" id="step1Status"></span>
+                </div>
 
                 <div class="accordion-content" id="step1Content">
+                    <div class="search-section">
+                        <label for="siteSearch" class="input-group__label">Search Radar Sites</label>
+                        <input
+                            type="text"
+                            id="siteSearch"
+                            class="input input--search"
+                            placeholder="Search by code, name, or state..."
+                            aria-describedby="searchHelp"
+                        >
+                        <div id="selectedSite" class="site-selection" role="status" aria-live="polite"></div>
+                    </div>
+                    <button
+                        id="selectRadarBtn"
+                        class="btn btn--primary btn--full"
+                        disabled
+                    >
+                        Select Radar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Accordion: Step 2 - Select Date & Time -->
+            <div class="accordion-section accordion-section--disabled" data-step="2">
+                <div class="accordion-header accordion-header--static" id="step2Header" aria-expanded="false">
+                    <span class="accordion-header__title">
+                        <span class="accordion-header__step">Step 2:</span>
+                        <span class="accordion-header__text">Select Date & Time</span>
+                    </span>
+                    <span class="accordion-header__status" id="step2Status"></span>
+                </div>
+
+                <div class="accordion-content" id="step2Content" style="display: none;">
                     <!-- Date Selectors -->
                     <div id="dateTimeControls" class="date-selectors">
                         <div class="input-group">
@@ -104,17 +102,17 @@
                 </div>
             </div>
 
-            <!-- Accordion: Step 2 - Radar Display -->
-            <div class="accordion-section" data-step="2">
-                <button class="accordion-header" id="step2Header" aria-expanded="false">
+            <!-- Accordion: Step 3 - Select Scan Information -->
+            <div class="accordion-section accordion-section--disabled" data-step="3">
+                <div class="accordion-header accordion-header--static" id="step3Header" aria-expanded="false">
                     <span class="accordion-header__title">
-                        <span class="accordion-header__step">Step 2:</span>
-                        <span class="accordion-header__text">Radar Display</span>
+                        <span class="accordion-header__step">Step 3:</span>
+                        <span class="accordion-header__text">Select Scan Information</span>
                     </span>
-                    <span class="accordion-header__icon">▼</span>
-                </button>
+                    <span class="accordion-header__status" id="step3Status"></span>
+                </div>
 
-                <div class="accordion-content" id="step2Content" style="display: none;">
+                <div class="accordion-content" id="step3Content" style="display: none;">
                     <!-- Radar Status Messages -->
                     <div id="radarStatus" class="status-message" role="alert" aria-live="polite"></div>
 
@@ -138,45 +136,90 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </aside>
 
-            <!-- Accordion: Step 3 - Precipitation Data -->
-            <div class="accordion-section" data-step="3">
-                <button class="accordion-header" id="step3Header" aria-expanded="false">
-                    <span class="accordion-header__title">
-                        <span class="accordion-header__step">Step 3:</span>
-                        <span class="accordion-header__text">Precipitation Data</span>
-                    </span>
-                    <span class="accordion-header__icon">▼</span>
-                </button>
+    <!-- Reflectivity Legend (Floating Bottom-Left) -->
+    <aside id="reflectivityLegend" class="legend" style="display: none;" aria-label="Reflectivity scale legend">
+        <div class="legend__content">
+            <h3 class="legend__title">Reflectivity (dBZ)</h3>
+            <div class="legend__scale-container">
+                <canvas id="legendCanvas" class="legend__canvas"></canvas>
+                <svg id="legendTicks" class="legend__ticks"></svg>
+            </div>
+            <div class="legend__labels">
+                <span class="legend__label legend__label--min" id="legendMin"></span>
+                <span class="legend__label legend__label--mid" id="legendMid"></span>
+                <span class="legend__label legend__label--max" id="legendMax"></span>
+            </div>
+        </div>
+    </aside>
 
-                <div class="accordion-content" id="step3Content" style="display: none;">
-                    <div class="zoom-controls">
-                        <div class="input-group">
-                            <label for="zoomPercentage" class="input-group__label">Zoom Area (% of radar circle)</label>
-                            <div class="zoom-percentage-display">
-                                <span id="zoomPercentageValue">4</span>%
-                            </div>
-                            <div class="zoom-hint">Use mouse wheel to adjust (2-10%)</div>
-                        </div>
+    <!-- Cross-Sectional Data Panel (Floating Right) - Only appears after left panel completion -->
+    <aside class="panel panel--precipitation" aria-label="Cross-sectional data" style="display: none;">
+        <div class="panel__content">
+            <h2 class="panel__heading">View Cross-Sectional Data</h2>
+
+            <!-- Data Information Card (builds progressively) -->
+            <div id="dataInfoCard" class="data-info-card" style="display: none;">
+                <div class="data-info-card__content">
+                    <!-- Site info (added when site selected) -->
+                    <div id="cardSiteInfo" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Site:</span>
+                        <span class="data-info-value" id="cardSiteName"></span>
                     </div>
 
-                    <div id="precipitationStatus" class="status-message info" style="display: block;">
-                        <span class="info-icon">ℹ</span> Hover over the radar area to view detailed precipitation data
+                    <!-- Date/Time info (added when time selected) -->
+                    <div id="cardDateTime" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Date:</span>
+                        <span class="data-info-value" id="cardDate"></span>
+                    </div>
+                    <div id="cardTime" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Time:</span>
+                        <span class="data-info-value" id="cardTimeValue"></span>
+                    </div>
+
+                    <!-- Radar data info (added when data parsed) -->
+                    <div id="cardVCP" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">VCP:</span>
+                        <span class="data-info-value" id="cardVCPValue"></span>
+                    </div>
+                    <div id="cardScans" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Elevations:</span>
+                        <span class="data-info-value" id="cardScansValue"></span>
+                    </div>
+                    <div id="cardRange" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Max Range:</span>
+                        <span class="data-info-value" id="cardRangeValue"></span>
+                    </div>
+
+                    <!-- Current display info (added when scan displayed) -->
+                    <div id="cardElevation" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Elevation:</span>
+                        <span class="data-info-value" id="cardElevationValue"></span>
+                    </div>
+                    <div id="cardReflectivity" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Reflectivity:</span>
+                        <span class="data-info-value" id="cardReflectivityValue"></span>
                     </div>
                 </div>
             </div>
 
-        </div>
-    </aside>
+            <div id="precipitationStatus" class="status-message info" style="display: block;">
+                <span class="info-icon">ℹ</span> Hover over the radar area to view detailed cross-sectional data. Use mouse wheel to adjust zoom area size.
+            </div>
 
-    <!-- Zoom Window (Top-Right Corner) -->
-    <aside id="zoomWindow" class="zoom-window" style="display: none;" aria-label="Detailed precipitation view">
-        <div class="zoom-window__header">
-            <h3 class="zoom-window__title">Detail View</h3>
-            <div class="zoom-window__coords" id="zoomCoords"></div>
-        </div>
-        <div class="zoom-window__canvas-container">
-            <canvas id="zoomCanvas" class="zoom-window__canvas"></canvas>
+            <!-- Detail View -->
+            <div id="zoomWindow" class="zoom-window-inline" style="display: none;">
+                <div class="zoom-window__header">
+                    <h3 class="zoom-window__title">Detail View</h3>
+                    <div class="zoom-window__coords" id="zoomCoords"></div>
+                </div>
+                <div class="zoom-window__map-container">
+                    <div id="zoomMap" class="zoom-window__map"></div>
+                    <canvas id="zoomCanvas" class="zoom-window__overlay"></canvas>
+                </div>
+            </div>
         </div>
     </aside>
 
