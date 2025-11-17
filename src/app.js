@@ -1918,11 +1918,9 @@ function updateZoomWindow(latLng, radarCenter) {
     // Update coordinates display
     coordsDiv.textContent = `${latLng.lat.toFixed(4)}°, ${latLng.lng.toFixed(4)}° | ${(range / 1000).toFixed(1)} km | Az: ${azimuth.toFixed(1)}°`;
 
-    // Calculate square size (same calculation as in updateHoverIndicators)
-    const areaFraction = zoomPercentage / 100;
-    const circleArea = Math.PI * window.radarFileData.maxRange * window.radarFileData.maxRange;
-    const squareArea = circleArea * areaFraction;
-    const squareSide = Math.sqrt(squareArea); // Side length of square in meters
+    // Calculate visible range (same calculation as in updateHoverIndicators)
+    const visibleRange = window.radarFileData.maxRange / zoomLevel; // Radius of visible area
+    const squareSide = visibleRange * 2; // Full width of square
 
     // windowSize is half the square side (radius of the view)
     const windowSize = squareSide / 2;
