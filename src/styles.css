@@ -995,7 +995,7 @@ body {
   background: white;
   border-radius: 50%;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 3px solid #63A361;
+  border: 3px solid #D4A017;
   width: 120px;
   height: 120px;
   justify-content: center;
@@ -1012,7 +1012,7 @@ body {
 .radar-loading-marker__icon svg {
   width: 100%;
   height: 100%;
-  fill: #63A361;
+  fill: #D4A017;
   animation: radarPulse 2s ease-in-out infinite;
 }
 
@@ -1031,8 +1031,8 @@ body {
   display: inline-block;
   width: 10px;
   height: 10px;
-  border: 2px solid rgba(99, 163, 97, 0.2);
-  border-top-color: #63A361;
+  border: 2px solid rgba(212, 160, 23, 0.2);
+  border-top-color: #D4A017;
   border-radius: 50%;
   animation: markerSpin 0.8s linear infinite;
 }

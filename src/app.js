@@ -153,7 +153,7 @@ function initMap() {
 function createMarkerContent(site) {
     const pin = document.createElement('div');
     pin.className = 'custom-marker';
-    pin.style.backgroundColor = '#63A361';
+    pin.style.backgroundColor = '#D4A017'; // Ochre yellow for available sites
     pin.dataset.siteCode = site.code;
     return pin;
 }
@@ -178,7 +178,7 @@ function selectSite(site, marker) {
 
     markers.forEach(({ marker: m, site: s }) => {
         if (m.content) {
-            m.content.style.backgroundColor = s.code === site.code ? '#FFC50F' : '#63A361';
+            m.content.style.backgroundColor = s.code === site.code ? '#16A34A' : '#D4A017';
             m.content.style.transform = s.code === site.code ? 'scale(1.2)' : 'scale(1)';
         }
     });
@@ -390,23 +390,23 @@ function filterMarkersBySiteAvailability() {
         // Update marker appearance based on search match and availability
         if (marker.content) {
             if (!matchesSearch) {
-                // Gray out sites that don't match search (same style as unavailable)
-                marker.content.style.backgroundColor = '#cbd5e0';
+                // Red for sites that don't match search (same style as unavailable)
+                marker.content.style.backgroundColor = '#DC2626';
                 marker.content.style.opacity = '1';
                 marker.content.style.transform = 'scale(1)';
             } else if (!isAvailable) {
-                // Gray out unavailable sites (but keep normal size since they match search)
-                marker.content.style.backgroundColor = '#cbd5e0';
+                // Red for unavailable sites (but keep normal size since they match search)
+                marker.content.style.backgroundColor = '#DC2626';
                 marker.content.style.opacity = '1';
                 marker.content.style.transform = 'scale(1)';
             } else if (site.code === selectedSite?.code) {
-                // Highlight selected site
-                marker.content.style.backgroundColor = '#FFC50F';
+                // Green for selected site
+                marker.content.style.backgroundColor = '#16A34A';
                 marker.content.style.transform = 'scale(1.2)';
                 marker.content.style.opacity = '1';
             } else {
-                // Normal available site that matches search
-                marker.content.style.backgroundColor = '#63A361';
+                // Ochre yellow for normal available site that matches search
+                marker.content.style.backgroundColor = '#D4A017';
                 marker.content.style.transform = 'scale(1)';
                 marker.content.style.opacity = '1';
             }
@@ -1532,7 +1532,7 @@ async function displayRadarHeatmap(scanIndex, resolution) {
 
             // Draw as a wedge segment
             ctx.fillStyle = color;
-            ctx.globalAlpha = 0.7; // Semi-transparent
+            ctx.globalAlpha = 0.95; // High opacity
 
             // Draw rectangle approximation (faster than wedge)
             const size = Math.max(gateWidth, 2);
@@ -1834,10 +1834,10 @@ function updateHoverIndicators(latLng, radarCenter, maxRange) {
     } else {
         hoverSquare = new google.maps.Polygon({
             paths: squareCorners,
-            strokeColor: '#ffffff',
+            strokeColor: '#888888',
             strokeOpacity: 0.8,
             strokeWeight: 2,
-            fillColor: '#ffffff',
+            fillColor: '#888888',
             fillOpacity: 0.1,
             map: map,
             clickable: false,
@@ -1853,7 +1853,7 @@ function updateHoverIndicators(latLng, radarCenter, maxRange) {
     } else {
         hoverRay = new google.maps.Polyline({
             path: [radarCenter, circumferencePoint],
-            strokeColor: '#ffffff',
+            strokeColor: '#888888',
             strokeOpacity: 0.6,
             strokeWeight: 2,
             map: map,
@@ -1964,28 +1964,113 @@ function drawRadarOverlay(latLng, radarCenter, windowSize) {
     // Clear canvas
     ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-    // For now, just draw a square outline to show the area we're viewing
-    // This should match the white square on the main map
-    ctx.strokeStyle = '#ff0000';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, canvasSize, canvasSize);
+    // Check if radar data is available
+    if (!window.radarFileData || window.currentScanIndex === null) {
+        // No radar data - just show placeholder
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('No radar data available', canvasSize / 2, canvasSize / 2);
+        return;
+    }
 
-    // Draw crosshair at center to show the hover point
-    ctx.strokeStyle = '#00ff00';
+    // Get scan data using nexradFile API
+    const nexradFile = window.radarFileData.nexradFile;
+    const scanIndex = window.currentScanIndex;
+
+    // Get scan info
+    const scanInfo = nexradFile.scan_info([scanIndex])[0];
+    if (!scanInfo || !scanInfo.moments.includes('REF')) return;
+
+    // Get data arrays
+    const ngates = scanInfo.ngates.REF;
+    const nrays = scanInfo.nrays;
+    const azimuths = nexradFile.get_azimuth_angles([scanIndex]);
+    const ranges = nexradFile.get_range(scanIndex, 'REF');
+    const reflectivity = nexradFile.get_data('REF', ngates, [scanIndex], false);
+
+    if (!azimuths || !ranges || !reflectivity) return;
+
+    // Calculate hover point in radar polar coordinates
+    const hoverPointPolar = latLngToRadarCoords(latLng, radarCenter);
+    const hoverRange = hoverPointPolar.range;
+    const hoverAzimuth = hoverPointPolar.azimuth;
+
+    // Calculate visible boundaries (half the window size from hover point)
+    const halfWindow = windowSize / 2;
+    const visibleRangeMin = Math.max(0, hoverRange - halfWindow);
+    const visibleRangeMax = hoverRange + halfWindow;
+
+    // Calculate scale: meters per pixel
+    const metersPerPixel = windowSize / canvasSize;
+
+    // Set higher opacity for radar data
+    ctx.globalAlpha = 0.95;
+
+    // Render radar data
+    for (let ray = 0; ray < nrays; ray++) {
+        const azimuth = azimuths[ray];
+        const azimuthRad = (azimuth - 90) * Math.PI / 180; // Convert to math coordinates
+
+        for (let gate = 0; gate < ngates; gate++) {
+            const value = reflectivity[ray][gate];
+
+            // Skip invalid values
+            if (value === null || value === undefined || isNaN(value) || value < -30) continue;
+
+            const range = ranges[gate];
+
+            // Check if gate is within visible range
+            if (range < visibleRangeMin || range > visibleRangeMax) continue;
+
+            // Calculate gate position relative to hover point
+            const hoverAngleRad = (hoverAzimuth - 90) * Math.PI / 180;
+            const dx = range * Math.cos(azimuthRad) - (hoverRange * Math.cos(hoverAngleRad));
+            const dy = range * Math.sin(azimuthRad) - (hoverRange * Math.sin(hoverAngleRad));
+
+            // Check if within window bounds
+            if (Math.abs(dx) > halfWindow || Math.abs(dy) > halfWindow) continue;
+
+            // Convert to canvas coordinates (center of canvas is hover point)
+            const canvasX = (canvasSize / 2) + (dx / metersPerPixel);
+            const canvasY = (canvasSize / 2) + (dy / metersPerPixel);
+
+            // Calculate gate dimensions
+            const gateWidth = 250; // gate spacing in meters
+            const gateSize = Math.max(1, gateWidth / metersPerPixel);
+
+            // Get color for this reflectivity value
+            const color = valueToRainbowColor(value);
+            ctx.fillStyle = color;
+            ctx.fillRect(canvasX - gateSize/2, canvasY - gateSize/2, gateSize, gateSize);
+        }
+    }
+
+    // Reset alpha for overlay elements
+    ctx.globalAlpha = 1.0;
+
+    // Draw crosshair at center (hover point)
+    ctx.strokeStyle = 'rgba(136, 136, 136, 0.8)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(canvasSize / 2, 0);
-    ctx.lineTo(canvasSize / 2, canvasSize);
-    ctx.moveTo(0, canvasSize / 2);
-    ctx.lineTo(canvasSize, canvasSize / 2);
+    ctx.moveTo(canvasSize / 2 - 10, canvasSize / 2);
+    ctx.lineTo(canvasSize / 2 + 10, canvasSize / 2);
+    ctx.moveTo(canvasSize / 2, canvasSize / 2 - 10);
+    ctx.lineTo(canvasSize / 2, canvasSize / 2 + 10);
     ctx.stroke();
 
-    // Draw text showing zoom level and window size
+    // Draw info overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, canvasSize, 40);
+
     ctx.fillStyle = '#ffffff';
-    ctx.font = '12px Arial';
+    ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(`Zoom: ${zoomLevel}× | Range: ${(windowSize / 1000).toFixed(1)} km`, canvasSize / 2, 20);
-    ctx.fillText(`(${((windowSize / maxRange) * 100).toFixed(1)}% of max range)`, canvasSize / 2, 35);
+    ctx.fillText(`Zoom: ${zoomLevel}× | Range: ${(windowSize / 1000).toFixed(1)} km`, canvasSize / 2, 15);
+
+    const percentage = ((windowSize / window.radarFileData.maxRange) * 100).toFixed(1);
+    ctx.font = '11px Arial';
+    ctx.fillText(`(${percentage}% of max range)`, canvasSize / 2, 30);
 }
 
 /**
