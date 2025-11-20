@@ -45,7 +45,10 @@ export function initMap(onSiteSelect) {
         zoomControlOptions: {
             position: google.maps.ControlPosition.LEFT_BOTTOM
         },
-        panControl: false,
+        panControl: true,
+        panControlOptions: {
+            position: google.maps.ControlPosition.LEFT_BOTTOM
+        },
         mapId: MAP_CONFIG.MAP_ID
     });
 
