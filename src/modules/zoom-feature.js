@@ -130,12 +130,14 @@ export function enableZoomFeature(radarData) {
         }
     });
 
-    // Add wheel listener for zoom control
+    // Add wheel listener - prevents map zoom and controls rectangle size
     const wheelHandler = (event) => {
-        if (!isMouseOverRadar) return;
-
+        // Always prevent default map zoom behavior when radar is loaded
         event.preventDefault();
         event.stopPropagation();
+
+        // Only adjust rectangle zoom if mouse is over radar area
+        if (!isMouseOverRadar) return;
 
         const delta = event.deltaY;
         const oldIndex = currentZoomLevelIndex;
@@ -162,6 +164,14 @@ export function enableZoomFeature(radarData) {
     mapDiv.addEventListener('wheel', wheelHandler, { passive: false });
     wheelHandlerRef = wheelHandler;
 
+    // Disable map zoom controls
+    map.setOptions({
+        scrollwheel: false,
+        gestureHandling: 'greedy'
+    });
+
+    console.log('Map zoom disabled - scroll wheel now controls rectangle size only');
+
     zoomListeners = [mouseMoveListener];
 }
 
@@ -186,6 +196,14 @@ export function disableZoomFeature() {
         const mapDiv = map.getDiv();
         mapDiv.removeEventListener('wheel', wheelHandlerRef);
         wheelHandlerRef = null;
+
+        // Re-enable map zoom controls
+        map.setOptions({
+            scrollwheel: true,
+            gestureHandling: 'greedy'
+        });
+
+        console.log('Map zoom re-enabled');
     }
 }
 

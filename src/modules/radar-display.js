@@ -214,10 +214,16 @@ export function updateLegend(minVal, maxVal) {
     const minLabel = document.getElementById('legendMin');
     const midLabel = document.getElementById('legendMid');
     const maxLabel = document.getElementById('legendMax');
+    const zoomControlsElement = document.getElementById('mapZoomControls');
 
     if (!legendElement || !canvas) return;
 
     legendElement.style.display = 'block';
+
+    // Show custom zoom controls with the legend
+    if (zoomControlsElement) {
+        zoomControlsElement.style.display = 'flex';
+    }
 
     const midVal = (minVal + maxVal) / 2;
     minLabel.textContent = minVal.toFixed(0);
@@ -270,8 +276,15 @@ export function updateLegend(minVal, maxVal) {
  */
 export function hideLegend() {
     const legendElement = document.getElementById('reflectivityLegend');
+    const zoomControlsElement = document.getElementById('mapZoomControls');
+
     if (legendElement) {
         legendElement.style.display = 'none';
+    }
+
+    // Hide custom zoom controls with the legend
+    if (zoomControlsElement) {
+        zoomControlsElement.style.display = 'none';
     }
 }
 

@@ -40,10 +40,16 @@ export function initMap(onSiteSelect) {
         center: MAP_CONFIG.DEFAULT_CENTER,
         mapTypeControl: false,
         streetViewControl: false,
+        fullscreenControl: false,
+        zoomControl: false,
+        panControl: false,
         mapId: MAP_CONFIG.MAP_ID
     });
 
     infoWindow = new google.maps.InfoWindow();
+
+    // Setup custom zoom controls
+    setupCustomZoomControls();
 
     // Create markers for all NEXRAD sites
     NEXRAD_SITES.forEach(site => {
@@ -403,4 +409,26 @@ export function clearMarkers() {
  */
 export function restoreMarkers() {
     filterMarkers(document.getElementById('siteSearch')?.value || '');
+}
+
+/**
+ * Setup custom zoom controls
+ */
+function setupCustomZoomControls() {
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', () => {
+            const currentZoom = map.getZoom();
+            map.setZoom(currentZoom + 1);
+        });
+    }
+
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', () => {
+            const currentZoom = map.getZoom();
+            map.setZoom(currentZoom - 1);
+        });
+    }
 }
