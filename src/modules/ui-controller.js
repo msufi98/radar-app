@@ -323,7 +323,7 @@ export function resetUI() {
     // Reset precipitation status message
     const precipitationStatusMessage = document.getElementById('precipitationStatusMessage');
     if (precipitationStatusMessage) {
-        precipitationStatusMessage.textContent = 'Select a resolution and scan level to view radar data.';
+        precipitationStatusMessage.textContent = 'Select a timestamp,resolution and scan level to view radar data.';
     }
 
     // Reset info card
