@@ -158,7 +158,7 @@
     <!-- Cross-Sectional Data Panel (Floating Right) - Only appears after left panel completion -->
     <aside class="panel panel--precipitation" aria-label="Cross-sectional data" style="display: none;">
         <div class="panel__content">
-            <h2 class="panel__heading">View Cross-Sectional Data</h2>
+            <h2 id="crossSectionalHeading" class="panel__heading" style="display: none;">View Cross-Sectional Data</h2>
 
             <!-- Data Information Card (builds progressively) -->
             <div id="dataInfoCard" class="data-info-card" style="display: none;">
@@ -206,7 +206,7 @@
             </div>
 
             <div id="precipitationStatus" class="status-message info" style="display: block;">
-                <span class="info-icon">ℹ</span> Hover over the radar area to view detailed cross-sectional data. Use mouse wheel to adjust zoom area size.
+                <span class="info-icon">ℹ</span> <span id="precipitationStatusMessage">Select a resolution and scan level to view radar data.</span>
             </div>
 
             <!-- Detail View -->

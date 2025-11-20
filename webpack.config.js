@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 
 export default {
     mode: 'development',
+    devtool: "source-map",
     entry: './src/app.js',
     output: {
         filename: 'bundle.js',

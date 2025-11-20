@@ -34,4 +34,6 @@ npm-debug.log*
 node_modules
 nul
 
+# static resources
 image.png
+image2.png
