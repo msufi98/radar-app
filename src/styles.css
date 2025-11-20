@@ -928,49 +928,6 @@ body {
 }
 
 /* ============================================
-   Custom Map Zoom Controls
-   ============================================ */
-.map-zoom-controls {
-  position: fixed;
-  bottom: 200px;
-  left: var(--space-md);
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  background: var(--color-surface-secondary);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-}
-
-.map-zoom-btn {
-  width: 40px;
-  height: 40px;
-  background: var(--color-surface);
-  border: none;
-  color: var(--color-text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s ease;
-  padding: 0;
-}
-
-.map-zoom-btn:hover {
-  background: var(--color-surface-secondary);
-}
-
-.map-zoom-btn:active {
-  background: var(--color-border);
-}
-
-.map-zoom-btn svg {
-  display: block;
-}
-
-/* ============================================
    Responsive Design
    ============================================ */
 @media (max-width: 1024px) {
