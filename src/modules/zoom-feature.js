@@ -16,9 +16,9 @@ let zoomMap = null;
 let zoomListeners = null;
 let wheelHandlerRef = null;
 
-// Zoom levels: 10 increments from 0.1° to 0.5° (in degrees lat/lng)
-const ZOOM_LEVELS = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55];
-let currentZoomLevelIndex = 0; // Start at 0.1°
+// Zoom levels: 12 increments from 0.025° to 0.55° (in degrees lat/lng)
+const ZOOM_LEVELS = [0.025, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55];
+let currentZoomLevelIndex = 2; // Start at 0.1°
 
 const ZOOM_CONFIG = {
     CANVAS_SIZE: 330
@@ -105,7 +105,7 @@ export function enableZoomFeature(radarData) {
     const map = getMap();
 
     // Reset to default zoom level
-    currentZoomLevelIndex = 0;
+    currentZoomLevelIndex = 2;
 
     console.log(`Initial zoom level: ±${ZOOM_LEVELS[currentZoomLevelIndex]}° lat/lng`);
 
@@ -333,14 +333,103 @@ function updateZoomWindow(latLng, radarData) {
     const bounds = hoverRectangle.getBounds();
     zoomMap.fitBounds(bounds);
 
-    // Draw overlay on canvas
-    drawRadarOverlay(offset);
+    // Draw overlay on canvas with radar data
+    drawRadarOverlay(offset, radarData, latLng.lat, latLng.lng);
 }
 
 /**
- * Draw radar data on zoom canvas (DISABLED - just shows basic overlay)
+ * Convert geographic coordinates to canvas coordinates relative to zoom window
  */
-function drawRadarOverlay(offset) {
+function geoToCanvas(lat, lng, centerLat, centerLng, offset, canvasSize) {
+    // Calculate position relative to center in degrees
+    const deltaLat = lat - centerLat;
+    const deltaLng = lng - centerLng;
+
+    // Normalize to -1 to 1 range based on offset
+    const normalizedX = deltaLng / offset;
+    const normalizedY = -deltaLat / offset; // Negative because canvas Y increases downward
+
+    // Map to canvas coordinates
+    const x = (normalizedX * 0.5 + 0.5) * canvasSize;
+    const y = (normalizedY * 0.5 + 0.5) * canvasSize;
+
+    return { x, y };
+}
+
+/**
+ * Calculate geographic point from radar center given distance and bearing
+ */
+function radarPolarToGeo(radarCenter, range, azimuth) {
+    const R = 6371000; // Earth radius in meters
+    const lat1 = radarCenter.lat * Math.PI / 180;
+    const lng1 = radarCenter.lng * Math.PI / 180;
+    const bearingRad = azimuth * Math.PI / 180;
+
+    const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(range / R) +
+        Math.cos(lat1) * Math.sin(range / R) * Math.cos(bearingRad)
+    );
+
+    const lng2 = lng1 + Math.atan2(
+        Math.sin(bearingRad) * Math.sin(range / R) * Math.cos(lat1),
+        Math.cos(range / R) - Math.sin(lat1) * Math.sin(lat2)
+    );
+
+    return {
+        lat: lat2 * 180 / Math.PI,
+        lng: lng2 * 180 / Math.PI
+    };
+}
+
+/**
+ * Draw a radial segment (wedge) on canvas
+ */
+function drawRadialSegment(ctx, radarCenter, centerLat, centerLng, offset, canvasSize, innerRange, outerRange, startAzimuth, endAzimuth, color, hasValue) {
+    // Calculate the 4 corners of the segment
+    const innerStart = radarPolarToGeo(radarCenter, innerRange, startAzimuth);
+    const innerEnd = radarPolarToGeo(radarCenter, innerRange, endAzimuth);
+    const outerStart = radarPolarToGeo(radarCenter, outerRange, startAzimuth);
+    const outerEnd = radarPolarToGeo(radarCenter, outerRange, endAzimuth);
+
+    // Convert to canvas coordinates
+    const p1 = geoToCanvas(innerStart.lat, innerStart.lng, centerLat, centerLng, offset, canvasSize);
+    const p2 = geoToCanvas(innerEnd.lat, innerEnd.lng, centerLat, centerLng, offset, canvasSize);
+    const p3 = geoToCanvas(outerEnd.lat, outerEnd.lng, centerLat, centerLng, offset, canvasSize);
+    const p4 = geoToCanvas(outerStart.lat, outerStart.lng, centerLat, centerLng, offset, canvasSize);
+
+    // Check if any point is within canvas bounds (with margin)
+    const margin = canvasSize * 0.1;
+    const isVisible = [p1, p2, p3, p4].some(p =>
+        p.x >= -margin && p.x <= canvasSize + margin &&
+        p.y >= -margin && p.y <= canvasSize + margin
+    );
+
+    if (!isVisible) return;
+
+    // Draw the quadrilateral
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.lineTo(p3.x, p3.y);
+    ctx.lineTo(p4.x, p4.y);
+    ctx.closePath();
+
+    // Fill with color if it has a value
+    if (hasValue) {
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    // Draw thin gray border
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.3)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+}
+
+/**
+ * Draw radar data on zoom canvas with radial segments
+ */
+function drawRadarOverlay(offset, radarData, centerLat, centerLng) {
     const canvas = document.getElementById('zoomCanvas');
     if (!canvas) return;
 
@@ -355,14 +444,77 @@ function drawRadarOverlay(offset) {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-    // RADAR HEATMAP RENDERING DISABLED
-    // Just show crosshair and info overlay without the heavy radar data rendering
+    // Draw radar data if available
+    if (radarData) {
+        const radarCenter = { lat: radarData.site.lat, lng: radarData.site.lon };
+        const zoomRadarData = generateZoomRadarData(radarData, { lat: centerLat, lng: centerLng }, radarCenter, offset);
+
+        if (zoomRadarData) {
+            const { azimuths, ranges, reflectivity, nrays, ngates, minVal, maxVal } = zoomRadarData;
+
+            // Draw each radial segment
+            for (let rayIdx = 0; rayIdx < nrays; rayIdx++) {
+                const azimuth = azimuths[rayIdx];
+
+                // Calculate angular width between rays
+                const nextRayIdx = (rayIdx + 1) % nrays;
+                const nextAzimuth = azimuths[nextRayIdx];
+                let angularWidth = nextAzimuth - azimuth;
+
+                // Handle wrap-around at 360°
+                if (angularWidth < 0) {
+                    angularWidth += 360;
+                }
+                if (angularWidth > 180) {
+                    angularWidth = 360 / nrays; // Fallback to average
+                }
+
+                const startAzimuth = azimuth - angularWidth / 2;
+                const endAzimuth = azimuth + angularWidth / 2;
+
+                // Draw each gate along this ray
+                for (let gateIdx = 0; gateIdx < ngates; gateIdx++) {
+                    const value = reflectivity[rayIdx][gateIdx];
+
+                    // Check if value is valid
+                    const hasValue = value !== null && value !== undefined && !isNaN(value);
+
+                    // Get color if value exists
+                    let color = null;
+                    if (hasValue) {
+                        const normalized = (value - minVal) / (maxVal - minVal);
+                        color = valueToRainbowColor(normalized);
+                    }
+
+                    // Get range boundaries
+                    const innerRange = ranges[gateIdx];
+                    const outerRange = gateIdx < ngates - 1 ? ranges[gateIdx + 1] : innerRange + (innerRange - (gateIdx > 0 ? ranges[gateIdx - 1] : 0));
+
+                    // Draw the segment (both filled and empty segments get borders)
+                    drawRadialSegment(
+                        ctx,
+                        radarCenter,
+                        centerLat,
+                        centerLng,
+                        offset,
+                        canvasSize,
+                        innerRange,
+                        outerRange,
+                        startAzimuth,
+                        endAzimuth,
+                        color,
+                        hasValue
+                    );
+                }
+            }
+        }
+    }
 
     ctx.globalAlpha = 1.0;
 
     // Draw crosshair at center
-    ctx.strokeStyle = 'rgba(136, 136, 136, 0.8)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(canvasSize / 2 - 10, canvasSize / 2);
     ctx.lineTo(canvasSize / 2 + 10, canvasSize / 2);
