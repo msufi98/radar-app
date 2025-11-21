@@ -93,7 +93,7 @@ function extractCrossSection(radarData, targetAzimuth, rangeBins = 100) {
     }
 
     // Add 5% safety margin to avoid clipping data at edges
-    effectiveMaxRange = Math.max(effectiveMaxRange * 1.05, ranges[0] || 0);
+    effectiveMaxRange = effectiveMaxRange > 0 ? effectiveMaxRange * 1.05 : maxRange;
     results.effectiveMaxRange = effectiveMaxRange;
 
     // Now bin data using effective max range
