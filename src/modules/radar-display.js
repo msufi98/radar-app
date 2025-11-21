@@ -12,44 +12,37 @@ let maxReflectivity = null;
 
 const RADAR_CONFIG = {
     CANVAS_SIZE: 2048,
-    HEATMAP_OPACITY: 0.7,
+    HEATMAP_OPACITY: 0.85, // Increased from 0.7 for better visibility
     DATA_OPACITY: 0.95
 };
 
 /**
- * Map a value to rainbow color (violet to red)
+ * Map actual dBZ value to NEXRAD-inspired bucketed colors
+ * Uses absolute dBZ thresholds, not normalized range
  */
-function valueToRainbowColor(value) {
-    value = Math.max(0, Math.min(1, value));
-    const hue = (1 - value) * 270;
-
-    const h = hue / 360;
-    const s = 1.0;
-    const l = 0.5;
-
-    let r, g, b;
-
-    if (s === 0) {
-        r = g = b = l;
-    } else {
-        const hue2rgb = (p, q, t) => {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1/6) return p + (q - p) * 6 * t;
-            if (t < 1/2) return q;
-            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-            return p;
-        };
-
-        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        const p = 2 * l - q;
-
-        r = hue2rgb(p, q, h + 1/3);
-        g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1/3);
+function valueToRainbowColor(dbzValue) {
+    // 7 color buckets based on absolute dBZ values (NEXRAD Level 3)
+    if (dbzValue < 5) {
+        return 'rgb(0, 189, 250)'; // Light Cyan #00BDFA (< 5 dBZ)
     }
-
-    return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+    else if (dbzValue < 15) {
+        return 'rgb(0, 205, 231)'; // Cyan #00CDE7 (5-15 dBZ)
+    }
+    else if (dbzValue < 30) {
+        return 'rgb(0, 157, 0)'; // Green #009D00 (15-30 dBZ)
+    }
+    else if (dbzValue < 40) {
+        return 'rgb(255, 255, 0)'; // Yellow #FFFF00 (30-40 dBZ)
+    }
+    else if (dbzValue < 50) {
+        return 'rgb(254, 83, 0)'; // Orange-Red #FE5300 (40-50 dBZ)
+    }
+    else if (dbzValue < 65) {
+        return 'rgb(228, 0, 127)'; // Magenta-Red #E4007F (50-65 dBZ)
+    }
+    else {
+        return 'rgb(254, 254, 254)'; // White #FEFEFE (65+ dBZ)
+    }
 }
 
 /**
@@ -107,6 +100,23 @@ export async function displayRadarHeatmap(radarData, scanIndex) {
 
     console.log(`Generating heatmap: ${nrays} rays × ${ngates} gates`);
 
+    // Calculate effective maximum range (furthest non-null gate across all rays)
+    let effectiveMaxRange = 0;
+    for (let ray = 0; ray < nrays; ray++) {
+        for (let gate = ngates - 1; gate >= 0; gate--) {
+            const val = refData[ray][gate];
+            if (val !== null && val !== undefined && !isNaN(val)) {
+                effectiveMaxRange = Math.max(effectiveMaxRange, ranges[gate]);
+                break; // Found furthest non-null for this ray
+            }
+        }
+    }
+    // Add 10% safety margin to avoid clipping valid data at edges
+    effectiveMaxRange = Math.max(effectiveMaxRange * 1.1, ranges[0]);
+
+    const fullRange = ranges[ranges.length - 1];
+    console.log(`Effective max range: ${(effectiveMaxRange / 1000).toFixed(1)} km (vs full range: ${(fullRange / 1000).toFixed(1)} km)`);
+
     // Find min/max values for color scaling
     let minVal = Infinity;
     let maxVal = -Infinity;
@@ -134,8 +144,8 @@ export async function displayRadarHeatmap(radarData, scanIndex) {
 
     ctx.clearRect(0, 0, canvasSize, canvasSize);
 
-    // Calculate scale
-    const maxRange = ranges[ranges.length - 1];
+    // Calculate scale using effective range for better visualization
+    const maxRange = effectiveMaxRange;
     const scale = (canvasSize / 2) / maxRange;
 
     // Draw each radial
@@ -144,16 +154,22 @@ export async function displayRadarHeatmap(radarData, scanIndex) {
         const azimuthRad = (azimuth - 90) * Math.PI / 180;
 
         for (let gate = 0; gate < ngates; gate++) {
+            const range = ranges[gate];
+
+            // Skip gates beyond effective range
+            if (range > effectiveMaxRange) {
+                break; // No need to check further gates on this ray
+            }
+
             const val = refData[ray][gate];
 
             if (val === null || val === undefined || isNaN(val)) {
                 continue;
             }
 
-            const normalized = (val - minVal) / (maxVal - minVal);
-            const color = valueToRainbowColor(normalized);
+            // Use actual dBZ value for color mapping (not normalized)
+            const color = valueToRainbowColor(val);
 
-            const range = ranges[gate];
             const x = canvasSize / 2 + range * Math.cos(azimuthRad) * scale;
             const y = canvasSize / 2 + range * Math.sin(azimuthRad) * scale;
 
@@ -163,12 +179,21 @@ export async function displayRadarHeatmap(radarData, scanIndex) {
             ctx.fillStyle = color;
             ctx.globalAlpha = RADAR_CONFIG.DATA_OPACITY;
 
-            const size = Math.max(gateWidth, 2);
+            // Progressive diffusion: increase cell size more as distance increases
+            // Near center: ~1.5x, Far out: ~2.5x
+            const distanceRatio = range / maxRange; // 0 at center, 1 at edge
+            const sizeMultiplier = 1.5 + (distanceRatio * 1.0); // 1.5 to 2.5
+            const size = Math.max(gateWidth * sizeMultiplier, 3);
             ctx.fillRect(x - size / 2, y - size / 2, size, size);
         }
     }
 
     ctx.globalAlpha = 1.0;
+
+    // Apply slight blur to smooth gaps between cells
+    ctx.filter = 'blur(1px)';
+    ctx.drawImage(canvas, 0, 0);
+    ctx.filter = 'none';
 
     // Convert canvas to image
     const imageUrl = canvas.toDataURL('image/png');
@@ -200,12 +225,14 @@ export async function displayRadarHeatmap(radarData, scanIndex) {
         ngates,
         elevAngle,
         minVal,
-        maxVal
+        maxVal,
+        effectiveMaxRange
     };
 }
 
 /**
  * Update reflectivity legend
+ * Now shows fixed dBZ thresholds instead of data range
  */
 export function updateLegend(minVal, maxVal) {
     const legendElement = document.getElementById('reflectivityLegend');
@@ -219,10 +246,10 @@ export function updateLegend(minVal, maxVal) {
 
     legendElement.style.display = 'block';
 
-    const midVal = (minVal + maxVal) / 2;
-    minLabel.textContent = minVal.toFixed(0);
-    midLabel.textContent = midVal.toFixed(0);
-    maxLabel.textContent = maxVal.toFixed(0);
+    // Use fixed dBZ thresholds instead of data range
+    minLabel.textContent = '0';
+    midLabel.textContent = '35';
+    maxLabel.textContent = '70';
 
     const dpr = window.devicePixelRatio || 1;
     const width = 200;
@@ -235,9 +262,10 @@ export function updateLegend(minVal, maxVal) {
     const ctx = canvas.getContext('2d');
     ctx.scale(dpr, dpr);
 
+    // Draw legend with actual dBZ values (0 to 70 dBZ)
     for (let x = 0; x < width; x++) {
-        const normalizedValue = x / (width - 1);
-        const color = valueToRainbowColor(normalizedValue);
+        const dbzValue = (x / (width - 1)) * 70; // 0 to 70 dBZ
+        const color = valueToRainbowColor(dbzValue);
         ctx.fillStyle = color;
         ctx.fillRect(x, 0, 1, height);
     }

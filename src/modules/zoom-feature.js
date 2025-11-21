@@ -5,23 +5,33 @@
 
 import { getMap } from './map-manager.js';
 import { generateZoomRadarData, valueToRainbowColor } from './radar-display.js';
+import { updateCrossSection } from './cross-section.js';
 
 // Zoom feature state
 let hoverRectangle = null;
 let hoverRay = null;
 let isMouseOverRadar = false;
+let isDragging = false;
 let currentHoverLatLng = null;
 let zoomWindowActive = false;
 let zoomMap = null;
 let zoomListeners = null;
 let wheelHandlerRef = null;
+let canvasRedrawTimeout = null;
+let lastCanvasRedrawTime = 0;
+let lastIndicatorUpdateTime = 0;
+let effectiveMaxRange = null;
+let zoomButtonListeners = null;
+let currentRadarData = null;
 
-// Zoom levels: 12 increments from 0.025° to 0.55° (in degrees lat/lng)
-const ZOOM_LEVELS = [0.025, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55];
-let currentZoomLevelIndex = 2; // Start at 0.1°
+// Zoom levels: 5 levels from 0.025° to 0.55° (in degrees lat/lng)
+const ZOOM_LEVELS = [0.025, 0.15, 0.3, 0.425, 0.55];
+let currentZoomLevelIndex = 0; // Start at 0.025° (highest zoom level)
 
 const ZOOM_CONFIG = {
-    CANVAS_SIZE: 330
+    CANVAS_SIZE: 330,
+    DEBOUNCE_MS: 150, // Wait for mouse to stop before redrawing (was 20ms)
+    INDICATOR_THROTTLE_MS: 16 // ~60fps throttle for hover indicators
 };
 
 /**
@@ -94,38 +104,103 @@ function isInsideRadarCircle(latLng, radarCenter, maxRange) {
 }
 
 /**
+ * Update zoom button states based on current zoom level
+ */
+function updateZoomButtonStates() {
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+
+    if (zoomInBtn) {
+        zoomInBtn.disabled = (currentZoomLevelIndex === 0);
+    }
+    if (zoomOutBtn) {
+        zoomOutBtn.disabled = (currentZoomLevelIndex === ZOOM_LEVELS.length - 1);
+    }
+}
+
+/**
+ * Handle zoom button click
+ */
+function handleZoomButtonClick(zoomIn) {
+    if (!currentHoverLatLng || !currentRadarData) return;
+
+    const radarCenter = { lat: currentRadarData.site.lat, lng: currentRadarData.site.lon };
+    const oldIndex = currentZoomLevelIndex;
+
+    if (zoomIn) {
+        // Zoom in (smaller degrees = more zoomed in)
+        currentZoomLevelIndex = Math.max(0, currentZoomLevelIndex - 1);
+    } else {
+        // Zoom out (larger degrees = more zoomed out)
+        currentZoomLevelIndex = Math.min(ZOOM_LEVELS.length - 1, currentZoomLevelIndex + 1);
+    }
+
+    if (oldIndex !== currentZoomLevelIndex) {
+        console.log(`Zoom: ±${ZOOM_LEVELS[oldIndex]}° -> ±${ZOOM_LEVELS[currentZoomLevelIndex]}°`);
+
+        // Update indicators and zoom window
+        updateHoverIndicators(currentHoverLatLng, radarCenter, currentRadarData, true);
+        updateZoomWindow(currentHoverLatLng, currentRadarData, false);
+        updateZoomButtonStates();
+    }
+}
+
+/**
  * Enable zoom feature
  */
-export function enableZoomFeature(radarData) {
+export function enableZoomFeature(radarData, effectiveRange = null) {
     if (!radarData || zoomWindowActive) return;
 
     zoomWindowActive = true;
+    currentRadarData = radarData;
     const radarCenter = { lat: radarData.site.lat, lng: radarData.site.lon };
-    const maxRange = radarData.maxRange;
+    const maxRange = effectiveRange || radarData.maxRange;
+    effectiveMaxRange = maxRange; // Store for later use
     const map = getMap();
 
     // Reset to default zoom level
-    currentZoomLevelIndex = 2;
+    currentZoomLevelIndex = 0;
+    updateZoomButtonStates();
 
     console.log(`Initial zoom level: ±${ZOOM_LEVELS[currentZoomLevelIndex]}° lat/lng`);
 
-    // Add mouse move listener
-    const mouseMoveListener = map.addListener('mousemove', (event) => {
+    // Add mouse down listener - start dragging
+    const mouseDownListener = map.addListener('mousedown', (event) => {
         const latLng = { lat: event.latLng.lat(), lng: event.latLng.lng() };
 
         if (isInsideRadarCircle(latLng, radarCenter, maxRange)) {
-            if (!isMouseOverRadar) {
-                isMouseOverRadar = true;
-                document.getElementById('zoomWindow').style.display = 'block';
-            }
+            isDragging = true;
+            isMouseOverRadar = true;
+            document.getElementById('zoomWindow').style.display = 'block';
+            currentHoverLatLng = latLng;
+            updateHoverIndicators(latLng, radarCenter, radarData, true);
+            updateZoomWindow(latLng, radarData, false);
+        }
+    });
+
+    // Add mouse move listener - only update when dragging
+    const mouseMoveListener = map.addListener('mousemove', (event) => {
+        if (!isDragging) return;
+
+        const latLng = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+
+        if (isInsideRadarCircle(latLng, radarCenter, maxRange)) {
             currentHoverLatLng = latLng;
             updateHoverIndicators(latLng, radarCenter, radarData);
             updateZoomWindow(latLng, radarData);
-        } else {
-            if (isMouseOverRadar) {
-                isMouseOverRadar = false;
-                clearHoverIndicators();
-                document.getElementById('zoomWindow').style.display = 'none';
+        }
+    });
+
+    // Add mouse up listener - stop dragging and update cross-section
+    const mouseUpListener = map.addListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            // Keep the rectangle visible after releasing
+
+            // Update cross-section after azimuth change
+            if (currentHoverLatLng) {
+                const { bearing: azimuth } = calculateDistanceAndBearing(radarCenter, currentHoverLatLng);
+                updateCrossSection(radarData, azimuth);
             }
         }
     });
@@ -136,8 +211,8 @@ export function enableZoomFeature(radarData) {
         event.preventDefault();
         event.stopPropagation();
 
-        // Only adjust rectangle zoom if mouse is over radar area
-        if (!isMouseOverRadar) return;
+        // Only adjust rectangle zoom if we have a position set
+        if (!currentHoverLatLng) return;
 
         const delta = event.deltaY;
         const oldIndex = currentZoomLevelIndex;
@@ -154,8 +229,10 @@ export function enableZoomFeature(radarData) {
             console.log(`Zoom: ±${ZOOM_LEVELS[oldIndex]}° -> ±${ZOOM_LEVELS[currentZoomLevelIndex]}°`);
 
             if (currentHoverLatLng) {
-                updateHoverIndicators(currentHoverLatLng, radarCenter, radarData);
-                updateZoomWindow(currentHoverLatLng, radarData);
+                // Update indicators immediately, but debounce zoom window redraw
+                updateHoverIndicators(currentHoverLatLng, radarCenter, radarData, true);
+                updateZoomWindow(currentHoverLatLng, radarData, false); // Changed to false for debounced redraw
+                updateZoomButtonStates();
             }
         }
     };
@@ -163,6 +240,22 @@ export function enableZoomFeature(radarData) {
     const mapDiv = map.getDiv();
     mapDiv.addEventListener('wheel', wheelHandler, { passive: false });
     wheelHandlerRef = wheelHandler;
+
+    // Add zoom button listeners
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+
+    const zoomInHandler = () => handleZoomButtonClick(true);
+    const zoomOutHandler = () => handleZoomButtonClick(false);
+
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', zoomInHandler);
+    }
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', zoomOutHandler);
+    }
+
+    zoomButtonListeners = { zoomInBtn, zoomOutBtn, zoomInHandler, zoomOutHandler };
 
     // Disable map zoom controls
     map.setOptions({
@@ -172,7 +265,7 @@ export function enableZoomFeature(radarData) {
 
     console.log('Map zoom disabled - scroll wheel now controls rectangle size only');
 
-    zoomListeners = [mouseMoveListener];
+    zoomListeners = [mouseDownListener, mouseMoveListener, mouseUpListener];
 }
 
 /**
@@ -181,7 +274,16 @@ export function enableZoomFeature(radarData) {
 export function disableZoomFeature() {
     zoomWindowActive = false;
     isMouseOverRadar = false;
+    isDragging = false;
     currentHoverLatLng = null;
+    effectiveMaxRange = null;
+    currentRadarData = null;
+
+    // Clear any pending canvas redraw
+    if (canvasRedrawTimeout) {
+        clearTimeout(canvasRedrawTimeout);
+        canvasRedrawTimeout = null;
+    }
 
     clearHoverIndicators();
     document.getElementById('zoomWindow').style.display = 'none';
@@ -205,13 +307,32 @@ export function disableZoomFeature() {
 
         console.log('Map zoom re-enabled');
     }
+
+    // Remove zoom button listeners
+    if (zoomButtonListeners) {
+        const { zoomInBtn, zoomOutBtn, zoomInHandler, zoomOutHandler } = zoomButtonListeners;
+        if (zoomInBtn) {
+            zoomInBtn.removeEventListener('click', zoomInHandler);
+        }
+        if (zoomOutBtn) {
+            zoomOutBtn.removeEventListener('click', zoomOutHandler);
+        }
+        zoomButtonListeners = null;
+    }
 }
 
 /**
- * Update hover indicators (rectangle and ray)
+ * Update hover indicators (rectangle and ray) with throttling
  */
-function updateHoverIndicators(latLng, radarCenter, radarData) {
+function updateHoverIndicators(latLng, radarCenter, radarData, forceImmediate = false) {
     if (!latLng || !radarCenter) return;
+
+    // Throttle indicator updates to ~60fps unless forced (follows Google Maps performance guidelines)
+    const now = Date.now();
+    if (!forceImmediate && now - lastIndicatorUpdateTime < ZOOM_CONFIG.INDICATOR_THROTTLE_MS) {
+        return;
+    }
+    lastIndicatorUpdateTime = now;
 
     const map = getMap();
     if (!map) return;
@@ -247,10 +368,10 @@ function updateHoverIndicators(latLng, radarCenter, radarData) {
     // Update ray from radar center through hover point to radar edge
     const { bearing: azimuth } = calculateDistanceAndBearing(radarCenter, latLng);
 
-    // Get actual radar max range
-    const maxRange = radarData ? radarData.maxRange : 230000;
+    // Get effective radar max range
+    const maxRange = effectiveMaxRange || (radarData ? radarData.maxRange : 230000);
 
-    // Calculate point at radar edge using actual max range
+    // Calculate point at radar edge using effective max range
     const radarEdgePoint = calculateDestinationPoint(radarCenter, maxRange, azimuth);
 
     if (hoverRay) {
@@ -308,9 +429,9 @@ function initializeZoomMap() {
 }
 
 /**
- * Update zoom window
+ * Update zoom window (debounced for performance)
  */
-function updateZoomWindow(latLng, radarData) {
+function updateZoomWindow(latLng, radarData, forceImmediate = false) {
     if (!radarData || !latLng || !hoverRectangle) return;
 
     if (!zoomMap) {
@@ -326,15 +447,41 @@ function updateZoomWindow(latLng, radarData) {
     // Get current zoom offset
     const offset = ZOOM_LEVELS[currentZoomLevelIndex];
 
-    // Update coordinates display
+    // Update coordinates display (lightweight operation - do immediately)
     coordsDiv.textContent = `${latLng.lat.toFixed(4)}°, ${latLng.lng.toFixed(4)}° | ${(range / 1000).toFixed(1)} km | Az: ${azimuth.toFixed(1)}° | Zoom: ±${offset}°`;
 
-    // Fit zoom map to rectangle bounds
+    // Update zoom map bounds (lightweight operation - do immediately)
     const bounds = hoverRectangle.getBounds();
     zoomMap.fitBounds(bounds);
 
-    // Draw overlay on canvas with radar data
-    drawRadarOverlay(offset, radarData, latLng.lat, latLng.lng);
+    // Get loading overlay element
+    const loadingOverlay = document.getElementById('zoomLoadingOverlay');
+
+    // Debounce expensive canvas redraw to avoid lag during mouse movement
+    // This follows Google Maps guidelines to avoid drawing overlays while map is moving
+    if (canvasRedrawTimeout) {
+        clearTimeout(canvasRedrawTimeout);
+    }
+
+    if (forceImmediate) {
+        // Force immediate redraw (used for wheel zoom changes)
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        drawRadarOverlay(offset, radarData, latLng.lat, latLng.lng);
+        lastCanvasRedrawTime = Date.now();
+    } else {
+        // Show loading overlay while waiting for debounced redraw
+        if (loadingOverlay) loadingOverlay.style.display = 'block';
+
+        // Debounce canvas redraw during mouse movement
+        canvasRedrawTimeout = setTimeout(() => {
+            drawRadarOverlay(offset, radarData, latLng.lat, latLng.lng);
+            lastCanvasRedrawTime = Date.now();
+            canvasRedrawTimeout = null;
+
+            // Hide loading overlay after redraw completes
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+        }, ZOOM_CONFIG.DEBOUNCE_MS);
+    }
 }
 
 /**
@@ -474,16 +621,22 @@ function drawRadarOverlay(offset, radarData, centerLat, centerLng) {
 
                 // Draw each gate along this ray
                 for (let gateIdx = 0; gateIdx < ngates; gateIdx++) {
+                    const gateRange = ranges[gateIdx];
+
+                    // Skip gates beyond effective range
+                    if (effectiveMaxRange && gateRange > effectiveMaxRange) {
+                        break; // No need to render further gates on this ray
+                    }
+
                     const value = reflectivity[rayIdx][gateIdx];
 
                     // Check if value is valid
                     const hasValue = value !== null && value !== undefined && !isNaN(value);
 
-                    // Get color if value exists
+                    // Get color if value exists (using actual dBZ value)
                     let color = null;
                     if (hasValue) {
-                        const normalized = (value - minVal) / (maxVal - minVal);
-                        color = valueToRainbowColor(normalized);
+                        color = valueToRainbowColor(value);
                     }
 
                     // Get range boundaries

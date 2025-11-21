@@ -158,12 +158,19 @@ export function progressToStep2(site) {
     const dataInfoCard = document.getElementById('dataInfoCard');
     const cardSiteInfo = document.getElementById('cardSiteInfo');
     const cardSiteName = document.getElementById('cardSiteName');
+    const cardHeaderSiteName = document.getElementById('cardHeaderSiteName');
 
     if (precipitationPanel) precipitationPanel.style.display = 'block';
     if (dataInfoCard) dataInfoCard.style.display = 'block';
     if (cardSiteInfo && site) {
         cardSiteInfo.style.display = 'flex';
-        cardSiteName.textContent = `${site.code} - ${site.name}, ${site.state}`;
+        const siteName = `${site.code} - ${site.name}, ${site.state}`;
+        cardSiteName.textContent = siteName;
+
+        // Also update header site name for when card gets collapsed
+        if (cardHeaderSiteName) {
+            cardHeaderSiteName.textContent = siteName;
+        }
     }
 }
 
@@ -227,6 +234,9 @@ export function updateRadarInfoCard(radarData) {
         cardRange.style.display = 'flex';
         cardRangeValue.textContent = `${(radarData.maxRange / 1000).toFixed(1)} km`;
     }
+
+    // Auto-collapse the card after data is loaded (step 3)
+    collapseDataInfoCard();
 }
 
 /**
@@ -247,10 +257,60 @@ export function updateScanInfoCard(scanDetails) {
         cardReflectivityValue.textContent = `${scanDetails.minVal.toFixed(1)} to ${scanDetails.maxVal.toFixed(1)} dBZ`;
     }
 
-    // Update the precipitation status message to show hover instructions
+    // Update the precipitation status message to show interaction instructions
     const precipitationStatusMessage = document.getElementById('precipitationStatusMessage');
     if (precipitationStatusMessage) {
-        precipitationStatusMessage.textContent = 'Hover over the radar area to view detailed cross-sectional data. Use mouse wheel to adjust zoom area size.';
+        precipitationStatusMessage.textContent = 'Click and drag on the radar area to view detailed cross-sectional data. Use mouse wheel to adjust zoom area size.';
+    }
+}
+
+/**
+ * Collapse data info card
+ */
+export function collapseDataInfoCard() {
+    const dataInfoCard = document.getElementById('dataInfoCard');
+    const cardHeaderSiteName = document.getElementById('cardHeaderSiteName');
+    const cardSiteName = document.getElementById('cardSiteName');
+
+    if (dataInfoCard) {
+        dataInfoCard.classList.add('collapsed');
+
+        // Copy site name to header
+        if (cardHeaderSiteName && cardSiteName) {
+            cardHeaderSiteName.textContent = cardSiteName.textContent;
+        }
+    }
+}
+
+/**
+ * Expand data info card
+ */
+export function expandDataInfoCard() {
+    const dataInfoCard = document.getElementById('dataInfoCard');
+
+    if (dataInfoCard) {
+        dataInfoCard.classList.remove('collapsed');
+    }
+}
+
+/**
+ * Initialize data info card toggle
+ */
+export function initializeDataInfoCardToggle() {
+    const toggleButton = document.getElementById('dataInfoCardToggle');
+
+    if (toggleButton) {
+        toggleButton.addEventListener('click', () => {
+            const dataInfoCard = document.getElementById('dataInfoCard');
+
+            if (dataInfoCard) {
+                if (dataInfoCard.classList.contains('collapsed')) {
+                    expandDataInfoCard();
+                } else {
+                    collapseDataInfoCard();
+                }
+            }
+        });
     }
 }
 
@@ -328,7 +388,11 @@ export function resetUI() {
 
     // Reset info card
     const dataInfoCard = document.getElementById('dataInfoCard');
-    if (dataInfoCard) dataInfoCard.style.display = 'none';
+    if (dataInfoCard) {
+        dataInfoCard.style.display = 'none';
+        // Expand the card on reset
+        expandDataInfoCard();
+    }
 
     const cardItems = document.querySelectorAll('.data-info-item');
     cardItems.forEach(item => item.style.display = 'none');

@@ -162,7 +162,13 @@
 
             <!-- Data Information Card (builds progressively) -->
             <div id="dataInfoCard" class="data-info-card" style="display: none;">
-                <div class="data-info-card__content">
+                <div class="data-info-card__header" id="dataInfoCardHeader">
+                    <span class="data-info-card__site-name" id="cardHeaderSiteName"></span>
+                    <button class="data-info-card__toggle" id="dataInfoCardToggle" aria-label="Toggle data info">
+                        <span class="data-info-card__toggle-arrow">▼</span>
+                    </button>
+                </div>
+                <div class="data-info-card__content" id="dataInfoCardContent">
                     <!-- Site info (added when site selected) -->
                     <div id="cardSiteInfo" class="data-info-item" style="display: none;">
                         <span class="data-info-label">Site:</span>
@@ -214,10 +220,28 @@
                 <div class="zoom-window__header">
                     <h3 class="zoom-window__title">Detail View</h3>
                     <div class="zoom-window__coords" id="zoomCoords"></div>
+                    <div class="zoom-window__controls">
+                        <button id="zoomInBtn" class="zoom-control-btn" title="Zoom in (smaller area)" aria-label="Zoom in">+</button>
+                        <button id="zoomOutBtn" class="zoom-control-btn" title="Zoom out (larger area)" aria-label="Zoom out">−</button>
+                    </div>
                 </div>
                 <div class="zoom-window__map-container">
                     <div id="zoomMap" class="zoom-window__map"></div>
                     <canvas id="zoomCanvas" class="zoom-window__overlay"></canvas>
+                    <div id="zoomLoadingOverlay" class="zoom-window__loading-overlay" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- Vertical Cross-Section View -->
+            <div id="crossSectionWindow" class="cross-section-window" style="display: none;">
+                <div class="cross-section-window__header">
+                    <h3 class="cross-section-window__title">Vertical Cross-Section</h3>
+                    <div class="cross-section-window__info" id="crossSectionInfo">
+                        Click and drag on the map
+                    </div>
+                </div>
+                <div class="cross-section-window__canvas-container">
+                    <canvas id="crossSectionCanvas" class="cross-section-window__canvas"></canvas>
                 </div>
             </div>
         </div>

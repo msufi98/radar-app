@@ -11,6 +11,7 @@ import * as DataLoader from './modules/data-loader.js';
 import * as RadarDisplay from './modules/radar-display.js';
 import * as ZoomFeature from './modules/zoom-feature.js';
 import * as UIController from './modules/ui-controller.js';
+import * as CrossSection from './modules/cross-section.js';
 
 // Application state
 let selectedSite = null;
@@ -31,6 +32,7 @@ async function initializeApp() {
 
         // Setup UI
         UIController.populateYearSelector();
+        UIController.initializeDataInfoCardToggle();
         setupEventHandlers();
 
         console.log('Application initialized successfully');
@@ -276,7 +278,8 @@ async function handleScanDisplay(scanIndex) {
 
         UIController.updateScanInfoCard(scanDetails);
         RadarDisplay.updateLegend(scanDetails.minVal, scanDetails.maxVal);
-        ZoomFeature.enableZoomFeature(radarFileData);
+        ZoomFeature.enableZoomFeature(radarFileData, scanDetails.effectiveMaxRange);
+        CrossSection.enableCrossSection(radarFileData);
 
     } catch (error) {
         console.error('Error displaying radar heatmap:', error);
