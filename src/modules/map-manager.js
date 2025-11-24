@@ -41,14 +41,8 @@ export function initMap(onSiteSelect) {
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        zoomControl: true,
-        zoomControlOptions: {
-            position: google.maps.ControlPosition.LEFT_BOTTOM
-        },
-        panControl: true,
-        panControlOptions: {
-            position: google.maps.ControlPosition.LEFT_BOTTOM
-        },
+        zoomControl: false,  // Disabled - using custom controls
+        panControl: false,   // Disabled - using custom controls
         mapId: MAP_CONFIG.MAP_ID
     });
 
@@ -70,7 +64,112 @@ export function initMap(onSiteSelect) {
         markers.push({ marker, site });
     });
 
+    // Initialize custom map controls
+    initializeMapControls();
+
     console.log(`Initialized map with ${markers.length} radar sites`);
+}
+
+/**
+ * Initialize custom map controls (zoom and pan)
+ */
+function initializeMapControls() {
+    const mapZoomIn = document.getElementById('mapZoomIn');
+    const mapZoomOut = document.getElementById('mapZoomOut');
+    const mapPanUp = document.getElementById('mapPanUp');
+    const mapPanDown = document.getElementById('mapPanDown');
+    const mapPanLeft = document.getElementById('mapPanLeft');
+    const mapPanRight = document.getElementById('mapPanRight');
+
+    // Zoom controls
+    if (mapZoomIn) {
+        mapZoomIn.addEventListener('click', () => {
+            if (!map) {
+                console.error('Map not initialized');
+                return;
+            }
+            const currentZoom = map.getZoom();
+            map.setZoom(currentZoom + 1);
+            console.log(`Zoomed in to level ${currentZoom + 1}`);
+        });
+    } else {
+        console.warn('mapZoomIn button not found');
+    }
+
+    if (mapZoomOut) {
+        mapZoomOut.addEventListener('click', () => {
+            if (!map) {
+                console.error('Map not initialized');
+                return;
+            }
+            const currentZoom = map.getZoom();
+            map.setZoom(currentZoom - 1);
+            console.log(`Zoomed out to level ${currentZoom - 1}`);
+        });
+    } else {
+        console.warn('mapZoomOut button not found');
+    }
+
+    // Pan controls - move by 25% of viewport
+    const PAN_FRACTION = 0.25;
+
+    if (mapPanUp) {
+        mapPanUp.addEventListener('click', () => {
+            const center = map.getCenter();
+            const bounds = map.getBounds();
+            if (!bounds) return;
+
+            const latDelta = (bounds.getNorthEast().lat() - bounds.getSouthWest().lat()) * PAN_FRACTION;
+            map.panTo({
+                lat: center.lat() + latDelta,
+                lng: center.lng()
+            });
+        });
+    }
+
+    if (mapPanDown) {
+        mapPanDown.addEventListener('click', () => {
+            const center = map.getCenter();
+            const bounds = map.getBounds();
+            if (!bounds) return;
+
+            const latDelta = (bounds.getNorthEast().lat() - bounds.getSouthWest().lat()) * PAN_FRACTION;
+            map.panTo({
+                lat: center.lat() - latDelta,
+                lng: center.lng()
+            });
+        });
+    }
+
+    if (mapPanLeft) {
+        mapPanLeft.addEventListener('click', () => {
+            const center = map.getCenter();
+            const bounds = map.getBounds();
+            if (!bounds) return;
+
+            const lngDelta = (bounds.getNorthEast().lng() - bounds.getSouthWest().lng()) * PAN_FRACTION;
+            map.panTo({
+                lat: center.lat(),
+                lng: center.lng() - lngDelta
+            });
+        });
+    }
+
+    if (mapPanRight) {
+        mapPanRight.addEventListener('click', () => {
+            const center = map.getCenter();
+            const bounds = map.getBounds();
+            if (!bounds) return;
+
+            const lngDelta = (bounds.getNorthEast().lng() - bounds.getSouthWest().lng()) * PAN_FRACTION;
+            map.panTo({
+                lat: center.lat(),
+                lng: center.lng() + lngDelta
+            });
+        });
+    }
+
+    console.log('Custom map controls initialized');
 }
 
 /**
@@ -412,4 +511,48 @@ export function clearMarkers() {
  */
 export function restoreMarkers() {
     filterMarkers(document.getElementById('siteSearch')?.value || '');
+}
+
+/**
+ * Show map controls
+ */
+export function showMapControls() {
+    const mapControls = document.getElementById('mapControls');
+    if (mapControls) {
+        mapControls.style.display = 'block';
+        console.log('Map controls shown');
+    } else {
+        console.error('mapControls element not found');
+    }
+}
+
+/**
+ * Hide map controls
+ */
+export function hideMapControls() {
+    const mapControls = document.getElementById('mapControls');
+    if (mapControls) {
+        mapControls.style.display = 'none';
+        console.log('Map controls hidden');
+    }
+}
+
+/**
+ * Disable map dragging/panning
+ */
+export function disableMapDragging() {
+    if (map) {
+        map.setOptions({ draggable: false });
+        console.log('Map dragging disabled');
+    }
+}
+
+/**
+ * Enable map dragging/panning
+ */
+export function enableMapDragging() {
+    if (map) {
+        map.setOptions({ draggable: true });
+        console.log('Map dragging enabled');
+    }
 }

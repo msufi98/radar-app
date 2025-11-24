@@ -954,6 +954,19 @@ body {
   transition: opacity 0.15s ease-in-out;
 }
 
+/* Dragging state for zoom window */
+.zoom-window-inline.dragging .zoom-window__map-container {
+  opacity: 0.4;
+  filter: grayscale(50%);
+  transition: opacity 0.1s ease-in-out, filter 0.1s ease-in-out;
+}
+
+.zoom-window-inline.dragging .zoom-window__overlay {
+  opacity: 0.4;
+  filter: grayscale(50%);
+  transition: opacity 0.1s ease-in-out, filter 0.1s ease-in-out;
+}
+
 /* ============================================
    Vertical Cross-Section Window
    ============================================ */
@@ -1004,12 +1017,110 @@ body {
 }
 
 /* ============================================
+   Map Controls (Zoom & Pan)
+   ============================================ */
+.map-controls {
+  position: fixed;
+  bottom: var(--space-lg);
+  left: var(--space-lg);
+  z-index: var(--z-panel);
+  background: var(--color-bg-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border);
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  transition: all var(--transition-base);
+}
+
+.map-controls:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+.map-controls__title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-sm) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.map-controls__pan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.map-controls__zoom {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  justify-content: center;
+}
+
+.map-controls__pan-horizontal {
+  display: flex;
+  gap: 2px;
+}
+
+.map-control-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-input);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.map-control-btn:hover:not(:disabled) {
+  background: var(--color-bg-panel-hover);
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.map-control-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.map-control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.map-control-btn--zoom {
+  font-size: 18px;
+}
+
+.map-control-btn--pan {
+  font-size: 14px;
+}
+
+/* ============================================
    Reflectivity Legend
    ============================================ */
 .legend {
   position: fixed;
   bottom: var(--space-lg);
-  left: 80px; /* Shifted right to avoid overlap with map controls */
+  left: 160px; /* Shifted right to avoid overlap with map controls */
   z-index: var(--z-panel);
   background: var(--color-bg-panel);
   backdrop-filter: blur(12px);

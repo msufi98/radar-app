@@ -190,10 +190,64 @@ export async function displayRadarHeatmap(radarData, scanIndex) {
 
     ctx.globalAlpha = 1.0;
 
-    // Apply slight blur to smooth gaps between cells
-    ctx.filter = 'blur(1px)';
-    ctx.drawImage(canvas, 0, 0);
-    ctx.filter = 'none';
+    // Apply progressive blur based on distance from center
+    // Create a temporary canvas for blur processing
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+
+    // Copy current canvas to temp
+    tempCtx.drawImage(canvas, 0, 0);
+
+    // Clear original canvas
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+    // Define distance-based blur zones (in meters from center to edge)
+    // Supporting up to 800 km range
+    const blurZones = [
+        { maxDistance: 50000, blur: 0.5 },    // 0-50 km: minimal blur
+        { maxDistance: 100000, blur: 1.0 },   // 50-100 km: light blur
+        { maxDistance: 200000, blur: 1.5 },   // 100-200 km: medium blur
+        { maxDistance: 400000, blur: 2.5 },   // 200-400 km: heavier blur
+        { maxDistance: 800000, blur: 4.0 }    // 400-800 km: maximum blur
+    ];
+
+    // Apply progressive blur using radial masks
+    for (const zone of blurZones) {
+        // Create a radial gradient mask
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = canvasSize;
+        maskCanvas.height = canvasSize;
+        const maskCtx = maskCanvas.getContext('2d');
+
+        const centerX = canvasSize / 2;
+        const centerY = canvasSize / 2;
+
+        // Calculate radius based on actual distance (capped at maxRange)
+        const effectiveDistance = Math.min(zone.maxDistance, maxRange);
+        const radius = (canvasSize / 2) * (effectiveDistance / maxRange);
+
+        // Draw the data with blur
+        maskCtx.filter = `blur(${zone.blur}px)`;
+        maskCtx.drawImage(tempCanvas, 0, 0);
+        maskCtx.filter = 'none';
+
+        // Create circular mask to only show this zone
+        maskCtx.globalCompositeOperation = 'destination-in';
+        maskCtx.beginPath();
+        maskCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        maskCtx.fillStyle = '#ffffff';
+        maskCtx.fill();
+
+        // Draw the masked blur layer onto main canvas
+        ctx.drawImage(maskCanvas, 0, 0);
+
+        // If we've reached or exceeded maxRange, no need to process further zones
+        if (zone.maxDistance >= maxRange) {
+            break;
+        }
+    }
 
     // Convert canvas to image
     const imageUrl = canvas.toDataURL('image/png');

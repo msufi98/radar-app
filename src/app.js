@@ -235,9 +235,14 @@ async function loadRadarData() {
         // Make globally accessible for compatibility
         window.radarFileData = radarFileData;
 
-        // Create range rings and crosshair
-        MapManager.createRangeRings(radarCenter, radarFileData.maxRange, 5);
-        MapManager.createCrosshair(radarCenter, radarFileData.maxRange);
+        // Create range rings and crosshair using effective max range
+        const displayRange = radarFileData.effectiveMaxRange || radarFileData.maxRange;
+        MapManager.createRangeRings(radarCenter, displayRange, 5);
+        MapManager.createCrosshair(radarCenter, displayRange);
+
+        // Show map controls and disable map dragging
+        MapManager.showMapControls();
+        MapManager.disableMapDragging();
 
         // Remove loading marker
         MapManager.removeLoadingMarker();
@@ -278,8 +283,10 @@ async function handleScanDisplay(scanIndex) {
 
         UIController.updateScanInfoCard(scanDetails);
         RadarDisplay.updateLegend(scanDetails.minVal, scanDetails.maxVal);
-        ZoomFeature.enableZoomFeature(radarFileData, scanDetails.effectiveMaxRange);
-        CrossSection.enableCrossSection(radarFileData);
+        // Use global effective max range (across all scans) for hover ray
+        const globalEffectiveRange = radarFileData.effectiveMaxRange || scanDetails.effectiveMaxRange;
+        ZoomFeature.enableZoomFeature(radarFileData, globalEffectiveRange);
+        CrossSection.enableCrossSection(radarFileData, scanIndex);
 
     } catch (error) {
         console.error('Error displaying radar heatmap:', error);
@@ -307,9 +314,12 @@ function handleReset() {
     // Reset map
     MapManager.resetMap();
 
-    // Disable zoom
+    // Disable features
     RadarDisplay.hideLegend();
     ZoomFeature.disableZoomFeature();
+    CrossSection.disableCrossSection();
+    MapManager.hideMapControls();
+    MapManager.enableMapDragging();
 
     console.log('Application reset complete');
 }

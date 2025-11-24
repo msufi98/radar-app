@@ -139,6 +139,23 @@
         </div>
     </aside>
 
+    <!-- Map Controls (Floating Bottom-Left) -->
+    <aside id="mapControls" class="map-controls" style="display: none;" aria-label="Map zoom and pan controls">
+        <h3 class="map-controls__title">Pan and Zoom Controls</h3>
+        <div class="map-controls__pan">
+            <button id="mapPanUp" class="map-control-btn map-control-btn--pan" title="Pan up" aria-label="Pan up">▲</button>
+            <div class="map-controls__pan-horizontal">
+                <button id="mapPanLeft" class="map-control-btn map-control-btn--pan" title="Pan left" aria-label="Pan left">◀</button>
+                <button id="mapPanRight" class="map-control-btn map-control-btn--pan" title="Pan right" aria-label="Pan right">▶</button>
+            </div>
+            <button id="mapPanDown" class="map-control-btn map-control-btn--pan" title="Pan down" aria-label="Pan down">▼</button>
+        </div>
+        <div class="map-controls__zoom">
+            <button id="mapZoomOut" class="map-control-btn map-control-btn--zoom" title="Zoom out" aria-label="Zoom out">−</button>
+            <button id="mapZoomIn" class="map-control-btn map-control-btn--zoom" title="Zoom in" aria-label="Zoom in">+</button>
+        </div>
+    </aside>
+
     <!-- Reflectivity Legend (Floating Bottom-Left) -->
     <aside id="reflectivityLegend" class="legend" style="display: none;" aria-label="Reflectivity scale legend">
         <div class="legend__content">
@@ -242,6 +259,19 @@
                 </div>
                 <div class="cross-section-window__canvas-container">
                     <canvas id="crossSectionCanvas" class="cross-section-window__canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Horizontal Cross-Section View -->
+            <div id="horizontalCrossSectionWindow" class="cross-section-window" style="display: none;">
+                <div class="cross-section-window__header">
+                    <h3 class="cross-section-window__title">Horizontal Cross-Section</h3>
+                    <div class="cross-section-window__info" id="horizontalCrossSectionInfo">
+                        Azimuth vs. Range
+                    </div>
+                </div>
+                <div class="cross-section-window__canvas-container">
+                    <canvas id="horizontalCrossSectionCanvas" class="cross-section-window__canvas"></canvas>
                 </div>
             </div>
         </div>

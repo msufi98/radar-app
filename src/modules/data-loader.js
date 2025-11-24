@@ -221,26 +221,52 @@ export async function loadRadarData(site, date, fileName) {
             storage_options: { anon: true }
         });
 
-        // Get scan info to determine range
-        const scanInfo = nexradFile.scan_info([0])[0];
-        const hasReflectivity = scanInfo.moments.includes('REF');
+        // Calculate effective max range across ALL scans (furthest non-null data point)
+        let effectiveMaxRange = 0;
+        let maxRange = 230000; // Default full range
 
-        let maxRange = 230000; // Default to 230km
+        console.log(`Calculating effective max range across ${nexradFile.nscans} scans...`);
 
-        if (hasReflectivity) {
-            const ranges = nexradFile.get_range(0, 'REF');
-            if (ranges && ranges.length > 0) {
+        for (let scanIndex = 0; scanIndex < nexradFile.nscans; scanIndex++) {
+            const scanInfo = nexradFile.scan_info([scanIndex])[0];
+
+            if (!scanInfo.moments.includes('REF')) continue;
+
+            const ngates = scanInfo.ngates.REF;
+            const nrays = scanInfo.nrays;
+            const ranges = nexradFile.get_range(scanIndex, 'REF');
+            const refData = nexradFile.get_data('REF', ngates, [scanIndex], false);
+
+            // Update full maxRange from first scan with reflectivity
+            if (maxRange === 230000 && ranges && ranges.length > 0) {
                 maxRange = ranges[ranges.length - 1];
-                console.log(`Reflectivity max range: ${(maxRange / 1000).toFixed(1)} km`);
+            }
+
+            // Find furthest non-null data point in this scan
+            for (let ray = 0; ray < nrays; ray++) {
+                for (let gate = ngates - 1; gate >= 0; gate--) {
+                    const val = refData[ray][gate];
+                    if (val !== null && val !== undefined && !isNaN(val)) {
+                        effectiveMaxRange = Math.max(effectiveMaxRange, ranges[gate]);
+                        break; // Found furthest non-null for this ray
+                    }
+                }
             }
         }
+
+        // Add 10% safety margin
+        effectiveMaxRange = Math.max(effectiveMaxRange * 1.1, maxRange * 0.1);
+
+        console.log(`Full max range: ${(maxRange / 1000).toFixed(1)} km`);
+        console.log(`Effective max range (all scans): ${(effectiveMaxRange / 1000).toFixed(1)} km`);
 
         return {
             site,
             date,
             fileName,
             nexradFile,
-            maxRange
+            maxRange,
+            effectiveMaxRange
         };
 
     } catch (error) {

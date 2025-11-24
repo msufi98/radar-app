@@ -149,12 +149,27 @@ function handleZoomButtonClick(zoomIn) {
  * Enable zoom feature
  */
 export function enableZoomFeature(radarData, effectiveRange = null) {
-    if (!radarData || zoomWindowActive) return;
+    if (!radarData) return;
+
+    const maxRange = effectiveRange || radarData.maxRange;
+
+    // If already active, just update the effective range and radar data
+    if (zoomWindowActive) {
+        effectiveMaxRange = maxRange;
+        currentRadarData = radarData;
+        console.log(`Updated effective max range: ${(effectiveMaxRange / 1000).toFixed(1)} km`);
+
+        // Update hover indicators if we have a current position
+        if (currentHoverLatLng) {
+            const radarCenter = { lat: radarData.site.lat, lng: radarData.site.lon };
+            updateHoverIndicators(currentHoverLatLng, radarCenter, radarData, true);
+        }
+        return;
+    }
 
     zoomWindowActive = true;
     currentRadarData = radarData;
     const radarCenter = { lat: radarData.site.lat, lng: radarData.site.lon };
-    const maxRange = effectiveRange || radarData.maxRange;
     effectiveMaxRange = maxRange; // Store for later use
     const map = getMap();
 
@@ -171,14 +186,17 @@ export function enableZoomFeature(radarData, effectiveRange = null) {
         if (isInsideRadarCircle(latLng, radarCenter, maxRange)) {
             isDragging = true;
             isMouseOverRadar = true;
-            document.getElementById('zoomWindow').style.display = 'block';
+            const zoomWindow = document.getElementById('zoomWindow');
+            zoomWindow.style.display = 'block';
+            // Add dragging class to gray out the detail view
+            zoomWindow.classList.add('dragging');
             currentHoverLatLng = latLng;
+            // Only update indicators on mouse down, not zoom window
             updateHoverIndicators(latLng, radarCenter, radarData, true);
-            updateZoomWindow(latLng, radarData, false);
         }
     });
 
-    // Add mouse move listener - only update when dragging
+    // Add mouse move listener - update indicators and cross-section when dragging
     const mouseMoveListener = map.addListener('mousemove', (event) => {
         if (!isDragging) return;
 
@@ -186,21 +204,27 @@ export function enableZoomFeature(radarData, effectiveRange = null) {
 
         if (isInsideRadarCircle(latLng, radarCenter, maxRange)) {
             currentHoverLatLng = latLng;
+            // Update visual indicators (box and ray)
             updateHoverIndicators(latLng, radarCenter, radarData);
-            updateZoomWindow(latLng, radarData);
+            // Update cross-section during drag
+            const { bearing: azimuth } = calculateDistanceAndBearing(radarCenter, latLng);
+            updateCrossSection(radarData, azimuth);
         }
     });
 
-    // Add mouse up listener - stop dragging and update cross-section
+    // Add mouse up listener - stop dragging and update zoom window
     const mouseUpListener = map.addListener('mouseup', () => {
         if (isDragging) {
             isDragging = false;
-            // Keep the rectangle visible after releasing
+            // Remove dragging class
+            const zoomWindow = document.getElementById('zoomWindow');
+            if (zoomWindow) {
+                zoomWindow.classList.remove('dragging');
+            }
 
-            // Update cross-section after azimuth change
+            // Now update zoom window after drag is complete
             if (currentHoverLatLng) {
-                const { bearing: azimuth } = calculateDistanceAndBearing(radarCenter, currentHoverLatLng);
-                updateCrossSection(radarData, azimuth);
+                updateZoomWindow(currentHoverLatLng, radarData, true); // Force immediate update
             }
         }
     });

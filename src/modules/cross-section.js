@@ -9,7 +9,9 @@ import { valueToRainbowColor } from './radar-display.js';
 let crossSectionActive = false;
 let currentRadarData = null;
 let currentAzimuth = null;
+let currentScanIndex = null;
 let numRangeBins = 100;
+let cachedHorizontalData = null;
 
 /**
  * Calculate beam height above radar accounting for Earth curvature
@@ -135,7 +137,7 @@ function extractCrossSection(radarData, targetAzimuth, rangeBins = 100) {
  */
 function drawCrossSection(crossSectionData, canvas) {
     const ctx = canvas.getContext('2d');
-    const canvasWidth = 380;
+    const canvasWidth = 330;
     const canvasHeight = 300;
     const dpr = window.devicePixelRatio || 1;
 
@@ -218,6 +220,18 @@ function drawCrossSection(crossSectionData, canvas) {
         }
         ctx.stroke();
 
+        // Draw elevation angle label at the end of the beam path
+        const labelRange = ranges[ranges.length - 1];
+        const labelHeight = calculateBeamHeight(labelRange, elevAngle);
+        const labelX = leftMargin + labelRange * rangeScale;
+        const labelY = canvasHeight - bottomMargin - labelHeight * heightScale;
+
+        ctx.fillStyle = 'rgba(128, 128, 128, 0.5)';
+        ctx.font = '9px Arial';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(`${elevAngle.toFixed(1)}°`, labelX - 2, labelY - 2);
+
         // Draw reflectivity data
         for (let rangeIdx = 0; rangeIdx < ranges.length; rangeIdx++) {
             const value = dataRow[rangeIdx];
@@ -297,23 +311,292 @@ export function updateCrossSection(radarData, azimuth) {
         infoDiv.textContent = `Azimuth: ${azimuth.toFixed(1)}°`;
     }
 
-    // Extract and draw cross-section
+    // Extract and draw vertical cross-section
     const crossSectionData = extractCrossSection(radarData, azimuth, numRangeBins);
     drawCrossSection(crossSectionData, canvas);
+
+    // Update horizontal cross-section with highlighted azimuth
+    updateHorizontalCrossSectionWithAzimuth(radarData, azimuth);
+}
+
+/**
+ * Update horizontal cross-section with highlighted azimuth
+ */
+function updateHorizontalCrossSectionWithAzimuth(radarData, azimuth) {
+    if (!crossSectionActive || !radarData || currentScanIndex === null) return;
+
+    const canvas = document.getElementById('horizontalCrossSectionCanvas');
+    if (!canvas) return;
+
+    // Use cached data if available, otherwise extract
+    if (!cachedHorizontalData) {
+        cachedHorizontalData = extractHorizontalCrossSection(radarData, currentScanIndex, 360, 100);
+    }
+
+    // Draw with highlight
+    drawHorizontalCrossSection(cachedHorizontalData, canvas, azimuth);
+}
+
+/**
+ * Extract horizontal cross-section data (all azimuths at all ranges) for current scan only
+ */
+function extractHorizontalCrossSection(radarData, scanIndex, azimuthBins = 360, rangeBins = 100) {
+    const nexradFile = radarData.nexradFile;
+    const results = {
+        azimuths: [],
+        ranges: [],
+        data: [],
+        effectiveMaxRange: 0
+    };
+
+    const scanInfo = nexradFile.scan_info([scanIndex])[0];
+
+    // Check if scan has reflectivity data
+    if (!scanInfo.moments.includes('REF')) {
+        return results;
+    }
+
+    const azimuths = nexradFile.get_azimuth_angles([scanIndex]);
+    const ranges = nexradFile.get_range(scanIndex, 'REF');
+    const refData = nexradFile.get_data('REF', scanInfo.ngates.REF, [scanIndex], false);
+
+    const maxRange = ranges[ranges.length - 1];
+
+    // Find furthest non-null data point
+    let effectiveMaxRange = 0;
+    for (let ray = 0; ray < scanInfo.nrays; ray++) {
+        for (let gate = ranges.length - 1; gate >= 0; gate--) {
+            const value = refData[ray][gate];
+            if (value !== null && value !== undefined && !isNaN(value)) {
+                effectiveMaxRange = Math.max(effectiveMaxRange, ranges[gate]);
+                break;
+            }
+        }
+    }
+
+    effectiveMaxRange = effectiveMaxRange > 0 ? effectiveMaxRange * 1.05 : maxRange;
+    results.effectiveMaxRange = effectiveMaxRange;
+
+    const azimuthBinSize = 360 / azimuthBins;
+    const rangeBinSize = effectiveMaxRange / rangeBins;
+
+    // Initialize 2D array for data (azimuth x range)
+    for (let azBin = 0; azBin < azimuthBins; azBin++) {
+        results.azimuths.push((azBin + 0.5) * azimuthBinSize);
+        results.data.push(new Array(rangeBins).fill(null));
+    }
+
+    for (let rangeBin = 0; rangeBin < rangeBins; rangeBin++) {
+        results.ranges.push((rangeBin + 0.5) * rangeBinSize);
+    }
+
+    // Fill in data for current scan only
+    for (let ray = 0; ray < azimuths.length; ray++) {
+        const azimuth = azimuths[ray];
+        const azBin = Math.floor(azimuth / azimuthBinSize);
+
+        if (azBin < 0 || azBin >= azimuthBins) continue;
+
+        for (let gate = 0; gate < ranges.length; gate++) {
+            const range = ranges[gate];
+            const rangeBin = Math.floor(range / rangeBinSize);
+
+            if (rangeBin < 0 || rangeBin >= rangeBins) continue;
+
+            const value = refData[ray][gate];
+            if (value !== null && value !== undefined && !isNaN(value)) {
+                // Take maximum value within this bin
+                const currentMax = results.data[azBin][rangeBin];
+                if (currentMax === null || value > currentMax) {
+                    results.data[azBin][rangeBin] = value;
+                }
+            }
+        }
+    }
+
+    return results;
+}
+
+/**
+ * Draw horizontal cross-section on canvas
+ */
+function drawHorizontalCrossSection(horizontalData, canvas, highlightAzimuth = null) {
+    const ctx = canvas.getContext('2d');
+    const canvasWidth = 330;
+    const canvasHeight = 300;
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = canvasWidth * dpr;
+    canvas.height = canvasHeight * dpr;
+    canvas.style.width = canvasWidth + 'px';
+    canvas.style.height = canvasHeight + 'px';
+
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    const { azimuths, ranges, data, effectiveMaxRange } = horizontalData;
+
+    if (azimuths.length === 0 || ranges.length === 0) {
+        ctx.fillStyle = '#666';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('No data available', canvasWidth / 2, canvasHeight / 2);
+        return;
+    }
+
+    // Margins
+    const leftMargin = 60;
+    const rightMargin = 20;
+    const topMargin = 20;
+    const bottomMargin = 40;
+
+    const plotWidth = canvasWidth - leftMargin - rightMargin;
+    const plotHeight = canvasHeight - topMargin - bottomMargin;
+
+    const maxRange = effectiveMaxRange || ranges[ranges.length - 1];
+
+    // Draw heatmap
+    const azBinWidth = plotWidth / azimuths.length;
+    const rangeBinHeight = plotHeight / ranges.length;
+
+    for (let azIdx = 0; azIdx < azimuths.length; azIdx++) {
+        for (let rangeIdx = 0; rangeIdx < ranges.length; rangeIdx++) {
+            const value = data[azIdx][rangeIdx];
+            if (value === null) continue;
+
+            const x = leftMargin + azIdx * azBinWidth;
+            const y = canvasHeight - bottomMargin - (rangeIdx + 1) * rangeBinHeight;
+
+            const color = valueToRainbowColor(value);
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, Math.ceil(azBinWidth) + 1, Math.ceil(rangeBinHeight) + 1);
+        }
+    }
+
+    // Draw grid
+    ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
+    ctx.lineWidth = 0.5;
+
+    // Vertical grid lines (every 45°)
+    for (let az = 0; az <= 360; az += 45) {
+        const x = leftMargin + (az / 360) * plotWidth;
+        ctx.beginPath();
+        ctx.moveTo(x, topMargin);
+        ctx.lineTo(x, canvasHeight - bottomMargin);
+        ctx.stroke();
+    }
+
+    // Horizontal grid lines (every 50km)
+    for (let r = 0; r <= maxRange; r += 50000) {
+        const y = canvasHeight - bottomMargin - (r / maxRange) * plotHeight;
+        ctx.beginPath();
+        ctx.moveTo(leftMargin, y);
+        ctx.lineTo(canvasWidth - rightMargin, y);
+        ctx.stroke();
+    }
+
+    // Draw axes
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(leftMargin, topMargin);
+    ctx.lineTo(leftMargin, canvasHeight - bottomMargin);
+    ctx.lineTo(canvasWidth - rightMargin, canvasHeight - bottomMargin);
+    ctx.stroke();
+
+    // Draw labels
+    ctx.fillStyle = '#000';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+
+    // X-axis labels (azimuth in degrees)
+    for (let az = 0; az <= 360; az += 45) {
+        const x = leftMargin + (az / 360) * plotWidth;
+        const y = canvasHeight - bottomMargin + 20;
+        ctx.fillText(`${az}°`, x, y);
+    }
+
+    // X-axis title
+    ctx.font = 'bold 13px Arial';
+    ctx.fillText('Azimuth (degrees)', canvasWidth / 2, canvasHeight - 5);
+
+    // Y-axis labels (range in km)
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'right';
+    for (let r = 0; r <= maxRange; r += 50000) {
+        const x = leftMargin - 10;
+        const y = canvasHeight - bottomMargin - (r / maxRange) * plotHeight + 4;
+        ctx.fillText((r / 1000).toFixed(0), x, y);
+    }
+
+    // Y-axis title
+    ctx.save();
+    ctx.translate(15, canvasHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.font = 'bold 13px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Range (km)', 0, 0);
+    ctx.restore();
+
+    // Draw highlight line for current azimuth if provided
+    if (highlightAzimuth !== null) {
+        const x = leftMargin + (highlightAzimuth / 360) * plotWidth;
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, topMargin);
+        ctx.lineTo(x, canvasHeight - bottomMargin);
+        ctx.stroke();
+
+        // Draw azimuth label at the top
+        ctx.fillStyle = 'rgba(255, 255, 0, 1)';
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${highlightAzimuth.toFixed(1)}°`, x, topMargin - 5);
+    }
+}
+
+/**
+ * Update horizontal cross-section
+ */
+export function updateHorizontalCrossSection(radarData, scanIndex) {
+    if (!crossSectionActive || !radarData || scanIndex === null || scanIndex === undefined) return;
+
+    const canvas = document.getElementById('horizontalCrossSectionCanvas');
+    if (!canvas) return;
+
+    // Store scan index
+    currentScanIndex = scanIndex;
+
+    // Extract and cache data, then draw
+    cachedHorizontalData = extractHorizontalCrossSection(radarData, scanIndex, 360, 100);
+    drawHorizontalCrossSection(cachedHorizontalData, canvas);
 }
 
 /**
  * Enable cross-section feature
  */
-export function enableCrossSection(radarData) {
+export function enableCrossSection(radarData, scanIndex) {
     crossSectionActive = true;
     currentRadarData = radarData;
+    currentScanIndex = scanIndex;
 
-    // Show cross-section window
+    // Clear cache to ensure fresh data on scan change
+    cachedHorizontalData = null;
+
+    // Show cross-section windows
     const crossSectionWindow = document.getElementById('crossSectionWindow');
     if (crossSectionWindow) {
         crossSectionWindow.style.display = 'block';
     }
+
+    const horizontalCrossSectionWindow = document.getElementById('horizontalCrossSectionWindow');
+    if (horizontalCrossSectionWindow) {
+        horizontalCrossSectionWindow.style.display = 'block';
+    }
+
+    // Draw initial horizontal cross-section
+    updateHorizontalCrossSection(radarData, scanIndex);
 
     console.log('Cross-section feature enabled');
 }
@@ -325,11 +608,18 @@ export function disableCrossSection() {
     crossSectionActive = false;
     currentRadarData = null;
     currentAzimuth = null;
+    currentScanIndex = null;
+    cachedHorizontalData = null;  // Clear cache
 
-    // Hide cross-section window
+    // Hide cross-section windows
     const crossSectionWindow = document.getElementById('crossSectionWindow');
     if (crossSectionWindow) {
         crossSectionWindow.style.display = 'none';
+    }
+
+    const horizontalCrossSectionWindow = document.getElementById('horizontalCrossSectionWindow');
+    if (horizontalCrossSectionWindow) {
+        horizontalCrossSectionWindow.style.display = 'none';
     }
 
     console.log('Cross-section feature disabled');
