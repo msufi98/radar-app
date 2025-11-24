@@ -206,11 +206,11 @@ export async function displayRadarHeatmap(radarData, scanIndex) {
     // Define distance-based blur zones (in meters from center to edge)
     // Supporting up to 800 km range
     const blurZones = [
-        { maxDistance: 50000, blur: 0.5 },    // 0-50 km: minimal blur
-        { maxDistance: 100000, blur: 1.0 },   // 50-100 km: light blur
-        { maxDistance: 200000, blur: 1.5 },   // 100-200 km: medium blur
-        { maxDistance: 400000, blur: 2.5 },   // 200-400 km: heavier blur
-        { maxDistance: 800000, blur: 4.0 }    // 400-800 km: maximum blur
+        { maxDistance: 50000, blur: 0.25 },   // 0-50 km: minimal blur
+        { maxDistance: 100000, blur: 0.5 },   // 50-100 km: light blur
+        { maxDistance: 200000, blur: 0.75 },  // 100-200 km: medium blur
+        { maxDistance: 400000, blur: 1.25 },  // 200-400 km: heavier blur
+        { maxDistance: 800000, blur: 2.0 }    // 400-800 km: maximum blur
     ];
 
     // Apply progressive blur using radial masks

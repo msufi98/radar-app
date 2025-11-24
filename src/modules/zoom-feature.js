@@ -191,8 +191,10 @@ export function enableZoomFeature(radarData, effectiveRange = null) {
             // Add dragging class to gray out the detail view
             zoomWindow.classList.add('dragging');
             currentHoverLatLng = latLng;
-            // Only update indicators on mouse down, not zoom window
+            // Update indicators and cross-section immediately on click
             updateHoverIndicators(latLng, radarCenter, radarData, true);
+            const { bearing: azimuth } = calculateDistanceAndBearing(radarCenter, latLng);
+            updateCrossSection(radarData, azimuth);
         }
     });
 
@@ -204,9 +206,9 @@ export function enableZoomFeature(radarData, effectiveRange = null) {
 
         if (isInsideRadarCircle(latLng, radarCenter, maxRange)) {
             currentHoverLatLng = latLng;
-            // Update visual indicators (box and ray)
-            updateHoverIndicators(latLng, radarCenter, radarData);
-            // Update cross-section during drag
+            // Update visual indicators (box and ray) in real-time - no throttling
+            updateHoverIndicators(latLng, radarCenter, radarData, true);
+            // Update cross-section during drag in real-time
             const { bearing: azimuth } = calculateDistanceAndBearing(radarCenter, latLng);
             updateCrossSection(radarData, azimuth);
         }

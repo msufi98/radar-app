@@ -149,10 +149,14 @@ function drawCrossSection(crossSectionData, canvas) {
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
+    // Draw dark background
+    ctx.fillStyle = '#121212';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
     const { elevations, ranges, data, effectiveMaxRange } = crossSectionData;
 
     if (elevations.length === 0) {
-        ctx.fillStyle = '#666';
+        ctx.fillStyle = '#B0B0B0';
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
         ctx.fillText('No data available', canvasWidth / 2, canvasHeight / 2);
@@ -175,7 +179,7 @@ function drawCrossSection(crossSectionData, canvas) {
     const heightScale = plotHeight / maxHeight;
 
     // Draw grid
-    ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
+    ctx.strokeStyle = 'rgba(68, 68, 68, 0.6)';  // #444444 with opacity
     ctx.lineWidth = 0.5;
 
     // Vertical grid lines (every 50km)
@@ -202,7 +206,7 @@ function drawCrossSection(crossSectionData, canvas) {
         const dataRow = data[elevIdx];
 
         // Draw beam path
-        ctx.strokeStyle = 'rgba(128, 128, 128, 0.2)';
+        ctx.strokeStyle = 'rgba(68, 68, 68, 0.4)';  // #444444 with opacity
         ctx.lineWidth = 0.5;
         ctx.beginPath();
 
@@ -226,7 +230,7 @@ function drawCrossSection(crossSectionData, canvas) {
         const labelX = leftMargin + labelRange * rangeScale;
         const labelY = canvasHeight - bottomMargin - labelHeight * heightScale;
 
-        ctx.fillStyle = 'rgba(128, 128, 128, 0.5)';
+        ctx.fillStyle = '#B0B0B0';  // Secondary text
         ctx.font = '9px Arial';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'bottom';
@@ -249,7 +253,7 @@ function drawCrossSection(crossSectionData, canvas) {
     }
 
     // Draw axes
-    ctx.strokeStyle = '#000';
+    ctx.strokeStyle = '#B0B0B0';  // Secondary text/borders
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(leftMargin, canvasHeight - bottomMargin);
@@ -258,7 +262,7 @@ function drawCrossSection(crossSectionData, canvas) {
     ctx.stroke();
 
     // Draw labels
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = '#E0E0E0';  // Primary text
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
 
@@ -434,10 +438,14 @@ function drawHorizontalCrossSection(horizontalData, canvas, highlightAzimuth = n
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
+    // Draw dark background
+    ctx.fillStyle = '#121212';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
     const { azimuths, ranges, data, effectiveMaxRange } = horizontalData;
 
     if (azimuths.length === 0 || ranges.length === 0) {
-        ctx.fillStyle = '#666';
+        ctx.fillStyle = '#B0B0B0';
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
         ctx.fillText('No data available', canvasWidth / 2, canvasHeight / 2);
@@ -474,7 +482,7 @@ function drawHorizontalCrossSection(horizontalData, canvas, highlightAzimuth = n
     }
 
     // Draw grid
-    ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
+    ctx.strokeStyle = 'rgba(68, 68, 68, 0.6)';  // #444444 with opacity
     ctx.lineWidth = 0.5;
 
     // Vertical grid lines (every 45°)
@@ -496,7 +504,7 @@ function drawHorizontalCrossSection(horizontalData, canvas, highlightAzimuth = n
     }
 
     // Draw axes
-    ctx.strokeStyle = '#000';
+    ctx.strokeStyle = '#B0B0B0';  // Secondary text/borders
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(leftMargin, topMargin);
@@ -505,7 +513,7 @@ function drawHorizontalCrossSection(horizontalData, canvas, highlightAzimuth = n
     ctx.stroke();
 
     // Draw labels
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = '#E0E0E0';  // Primary text
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
 

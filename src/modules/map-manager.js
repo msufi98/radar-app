@@ -43,6 +43,7 @@ export function initMap(onSiteSelect) {
         fullscreenControl: false,
         zoomControl: false,  // Disabled - using custom controls
         panControl: false,   // Disabled - using custom controls
+        clickableIcons: false,  // Disable clickable POI markers
         mapId: MAP_CONFIG.MAP_ID
     });
 
