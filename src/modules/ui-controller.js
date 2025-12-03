@@ -146,6 +146,8 @@ export function progressToStep2(site) {
     const step2Header = document.getElementById('step2Header');
     const step2Content = document.getElementById('step2Content');
 
+    const step1Section = document.querySelector('[data-step="1"]');
+    if (step1Section) step1Section.classList.add('accordion-section--closed');
     if (step1Content) step1Content.style.display = 'none';
     if (step1Status) step1Status.textContent = '✓';
 
@@ -153,14 +155,12 @@ export function progressToStep2(site) {
     if (step2Header) step2Header.setAttribute('aria-expanded', 'true');
     if (step2Content) step2Content.style.display = 'block';
 
-    // Show right panel and add site info
-    const precipitationPanel = document.querySelector('.panel--precipitation');
+    // Show data info card and add site info
     const dataInfoCard = document.getElementById('dataInfoCard');
     const cardSiteInfo = document.getElementById('cardSiteInfo');
     const cardSiteName = document.getElementById('cardSiteName');
     const cardHeaderSiteName = document.getElementById('cardHeaderSiteName');
 
-    if (precipitationPanel) precipitationPanel.style.display = 'block';
     if (dataInfoCard) dataInfoCard.style.display = 'block';
     if (cardSiteInfo && site) {
         cardSiteInfo.style.display = 'flex';
@@ -184,6 +184,8 @@ export function progressToStep3(date, time) {
     const step3Header = document.getElementById('step3Header');
     const step3Content = document.getElementById('step3Content');
 
+    const step2Section = document.querySelector('[data-step="2"]');
+    if (step2Section) step2Section.classList.add('accordion-section--closed');
     if (step2Content) step2Content.style.display = 'none';
     if (step2Status) step2Status.textContent = '✓';
 
@@ -354,10 +356,13 @@ export function resetUI() {
     const step3Content = document.getElementById('step3Content');
     const step3Status = document.getElementById('step3Status');
 
+    const step1Section = document.querySelector('[data-step="1"]');
+    if (step1Section) step1Section.classList.remove('accordion-section--closed');
     if (step1Header) step1Header.setAttribute('aria-expanded', 'true');
     if (step1Content) step1Content.style.display = 'block';
     if (step1Status) step1Status.textContent = '';
 
+    if (step2Section) step2Section.classList.remove('accordion-section--closed');
     if (step2Section) step2Section.classList.add('accordion-section--disabled');
     if (step2Header) step2Header.setAttribute('aria-expanded', 'false');
     if (step2Content) step2Content.style.display = 'none';
@@ -372,19 +377,13 @@ export function resetUI() {
     const selectRadarBtn = document.getElementById('selectRadarBtn');
     if (selectRadarBtn) selectRadarBtn.disabled = true;
 
-    // Hide panels
-    const precipitationPanel = document.querySelector('.panel--precipitation');
-    if (precipitationPanel) precipitationPanel.style.display = 'none';
-
-    // Hide cross-sectional heading
-    const crossSectionalHeading = document.getElementById('crossSectionalHeading');
-    if (crossSectionalHeading) crossSectionalHeading.style.display = 'none';
-
-    // Reset precipitation status message
-    const precipitationStatusMessage = document.getElementById('precipitationStatusMessage');
-    if (precipitationStatusMessage) {
-        precipitationStatusMessage.textContent = 'Select a timestamp, resolution and scan level to retrieve and visualize radar data.';
-    }
+    // Hide floating panels
+    const zoomWindow = document.getElementById('zoomWindow');
+    const crossSectionWindow = document.getElementById('crossSectionWindow');
+    const horizontalCrossSectionWindow = document.getElementById('horizontalCrossSectionWindow');
+    if (zoomWindow) zoomWindow.style.display = 'none';
+    if (crossSectionWindow) crossSectionWindow.style.display = 'none';
+    if (horizontalCrossSectionWindow) horizontalCrossSectionWindow.style.display = 'none';
 
     // Reset info card
     const dataInfoCard = document.getElementById('dataInfoCard');
@@ -396,10 +395,6 @@ export function resetUI() {
 
     const cardItems = document.querySelectorAll('.data-info-item');
     cardItems.forEach(item => item.style.display = 'none');
-
-    // Hide zoom window
-    const zoomWindow = document.getElementById('zoomWindow');
-    if (zoomWindow) zoomWindow.style.display = 'none';
 
     console.log('UI reset to initial state');
 }

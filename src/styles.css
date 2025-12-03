@@ -255,9 +255,9 @@ body {
   border-bottom: none;
 }
 
-.accordion-section--disabled {
-  opacity: 0.5;
-  pointer-events: none;
+.accordion-section--disabled,
+.accordion-section--closed {
+  display: none;
 }
 
 .accordion-header {
@@ -1021,7 +1021,7 @@ body {
    ============================================ */
 .map-controls {
   position: fixed;
-  bottom: var(--space-lg);
+  bottom: calc(var(--space-lg) + 125px);
   left: var(--space-lg);
   z-index: var(--z-panel);
   background: var(--color-bg-panel);
@@ -1120,7 +1120,7 @@ body {
 .legend {
   position: fixed;
   bottom: var(--space-lg);
-  left: 160px; /* Shifted right to avoid overlap with map controls */
+  left: var(--space-lg);
   z-index: var(--z-panel);
   background: var(--color-bg-panel);
   backdrop-filter: blur(12px);
@@ -1370,4 +1370,117 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ============================================
+   Floating Panels (Detail View & Cross-Sections)
+   ============================================ */
+.floating-panel {
+  position: fixed;
+  z-index: var(--z-panel);
+  background: var(--color-bg-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.floating-panel:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+/* Vertical Cross-Section - Bottom Right Corner */
+.floating-panel--vertical {
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+}
+
+/* Detail View (Zoom) - Left of Vertical Cross-Section */
+.floating-panel--zoom {
+  bottom: var(--space-lg);
+  right: calc(var(--space-lg) + 350px);
+}
+
+/* Horizontal Cross-Section - Above Vertical Cross-Section */
+.floating-panel--horizontal {
+  bottom: calc(var(--space-lg) + 340px);
+  right: var(--space-lg);
+}
+
+.floating-panel__header {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.floating-panel__title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.floating-panel__info,
+.floating-panel__coords {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.floating-panel__controls {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.floating-panel__canvas-container,
+.floating-panel__map-container {
+  position: relative;
+  width: 330px;
+  height: 300px;
+}
+
+.floating-panel__canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.floating-panel__map {
+  width: 100%;
+  height: 100%;
+}
+
+.floating-panel__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.floating-panel__loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(128, 128, 128, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Dragging state for zoom window */
+.floating-panel--zoom.dragging .floating-panel__map-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(128, 128, 128, 0.5);
+  pointer-events: none;
 }

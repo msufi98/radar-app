@@ -26,6 +26,57 @@
                 </button>
             </header>
 
+            <!-- Data Information Card (builds progressively) -->
+            <div id="dataInfoCard" class="data-info-card" style="display: none;">
+                <div class="data-info-card__header" id="dataInfoCardHeader">
+                    <span class="data-info-card__site-name" id="cardHeaderSiteName"></span>
+                    <button class="data-info-card__toggle" id="dataInfoCardToggle" aria-label="Toggle data info">
+                        <span class="data-info-card__toggle-arrow">▼</span>
+                    </button>
+                </div>
+                <div class="data-info-card__content" id="dataInfoCardContent">
+                    <!-- Site info (added when site selected) -->
+                    <div id="cardSiteInfo" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Site:</span>
+                        <span class="data-info-value" id="cardSiteName"></span>
+                    </div>
+
+                    <!-- Date/Time info (added when time selected) -->
+                    <div id="cardDateTime" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Date:</span>
+                        <span class="data-info-value" id="cardDate"></span>
+                    </div>
+                    <div id="cardTime" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Time:</span>
+                        <span class="data-info-value" id="cardTimeValue"></span>
+                    </div>
+
+                    <!-- Radar data info (added when data parsed) -->
+                    <div id="cardVCP" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">VCP:</span>
+                        <span class="data-info-value" id="cardVCPValue"></span>
+                    </div>
+                    <div id="cardScans" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Elevations:</span>
+                        <span class="data-info-value" id="cardScansValue"></span>
+                    </div>
+                    <div id="cardRange" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Max Range:</span>
+                        <span class="data-info-value" id="cardRangeValue"></span>
+                    </div>
+
+                    <!-- Current display info (added when scan displayed) -->
+                    <div id="cardElevation" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Elevation:</span>
+                        <span class="data-info-value" id="cardElevationValue"></span>
+                    </div>
+                    <div id="cardReflectivity" class="data-info-item" style="display: none;">
+                        <span class="data-info-label">Reflectivity:</span>
+                        <span class="data-info-value" id="cardReflectivityValue"></span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Accordion: Step 1 - Select Radar Site -->
             <div class="accordion-section" data-step="1">
                 <div class="accordion-header accordion-header--static" id="step1Header" aria-expanded="true">
@@ -141,7 +192,6 @@
 
     <!-- Map Controls (Floating Bottom-Left) -->
     <aside id="mapControls" class="map-controls" style="display: none;" aria-label="Map zoom and pan controls">
-        <h3 class="map-controls__title">Pan and Zoom Controls</h3>
         <div class="map-controls__pan">
             <button id="mapPanUp" class="map-control-btn map-control-btn--pan" title="Pan up" aria-label="Pan up">▲</button>
             <div class="map-controls__pan-horizontal">
@@ -172,108 +222,46 @@
         </div>
     </aside>
 
-    <!-- Cross-Sectional Data Panel (Floating Right) - Only appears after left panel completion -->
-    <aside class="panel panel--precipitation" aria-label="Cross-sectional data" style="display: none;">
-        <div class="panel__content">
-            <h2 id="crossSectionalHeading" class="panel__heading" style="display: none;">View Cross-Sectional Data</h2>
-
-            <!-- Data Information Card (builds progressively) -->
-            <div id="dataInfoCard" class="data-info-card" style="display: none;">
-                <div class="data-info-card__header" id="dataInfoCardHeader">
-                    <span class="data-info-card__site-name" id="cardHeaderSiteName"></span>
-                    <button class="data-info-card__toggle" id="dataInfoCardToggle" aria-label="Toggle data info">
-                        <span class="data-info-card__toggle-arrow">▼</span>
-                    </button>
-                </div>
-                <div class="data-info-card__content" id="dataInfoCardContent">
-                    <!-- Site info (added when site selected) -->
-                    <div id="cardSiteInfo" class="data-info-item" style="display: none;">
-                        <span class="data-info-label">Site:</span>
-                        <span class="data-info-value" id="cardSiteName"></span>
-                    </div>
-
-                    <!-- Date/Time info (added when time selected) -->
-                    <div id="cardDateTime" class="data-info-item" style="display: none;">
-                        <span class="data-info-label">Date:</span>
-                        <span class="data-info-value" id="cardDate"></span>
-                    </div>
-                    <div id="cardTime" class="data-info-item" style="display: none;">
-                        <span class="data-info-label">Time:</span>
-                        <span class="data-info-value" id="cardTimeValue"></span>
-                    </div>
-
-                    <!-- Radar data info (added when data parsed) -->
-                    <div id="cardVCP" class="data-info-item" style="display: none;">
-                        <span class="data-info-label">VCP:</span>
-                        <span class="data-info-value" id="cardVCPValue"></span>
-                    </div>
-                    <div id="cardScans" class="data-info-item" style="display: none;">
-                        <span class="data-info-label">Elevations:</span>
-                        <span class="data-info-value" id="cardScansValue"></span>
-                    </div>
-                    <div id="cardRange" class="data-info-item" style="display: none;">
-                        <span class="data-info-label">Max Range:</span>
-                        <span class="data-info-value" id="cardRangeValue"></span>
-                    </div>
-
-                    <!-- Current display info (added when scan displayed) -->
-                    <div id="cardElevation" class="data-info-item" style="display: none;">
-                        <span class="data-info-label">Elevation:</span>
-                        <span class="data-info-value" id="cardElevationValue"></span>
-                    </div>
-                    <div id="cardReflectivity" class="data-info-item" style="display: none;">
-                        <span class="data-info-label">Reflectivity:</span>
-                        <span class="data-info-value" id="cardReflectivityValue"></span>
-                    </div>
-                </div>
+    <!-- Floating Detail View Panel -->
+    <aside id="zoomWindow" class="floating-panel floating-panel--zoom" style="display: none;">
+        <div class="floating-panel__header">
+            <h3 class="floating-panel__title">Detail View</h3>
+            <div class="floating-panel__coords" id="zoomCoords"></div>
+            <div class="floating-panel__controls">
+                <button id="zoomInBtn" class="zoom-control-btn" title="Zoom in (smaller area)" aria-label="Zoom in">+</button>
+                <button id="zoomOutBtn" class="zoom-control-btn" title="Zoom out (larger area)" aria-label="Zoom out">−</button>
             </div>
+        </div>
+        <div class="floating-panel__map-container">
+            <div id="zoomMap" class="floating-panel__map"></div>
+            <canvas id="zoomCanvas" class="floating-panel__overlay"></canvas>
+            <div id="zoomLoadingOverlay" class="floating-panel__loading-overlay" style="display: none;"></div>
+        </div>
+    </aside>
 
-            <div id="precipitationStatus" class="status-message info" style="display: block;">
-                <span class="info-icon">ℹ</span> <span id="precipitationStatusMessage">Select a timestamp, resolution and scan level to retrieve and visualize radar data.</span>
+    <!-- Floating Vertical Cross-Section Panel -->
+    <aside id="crossSectionWindow" class="floating-panel floating-panel--vertical" style="display: none;">
+        <div class="floating-panel__header">
+            <h3 class="floating-panel__title">Vertical Cross-Section</h3>
+            <div class="floating-panel__info" id="crossSectionInfo">
+                Click and drag on the map to view detailed data.
             </div>
+        </div>
+        <div class="floating-panel__canvas-container">
+            <canvas id="crossSectionCanvas" class="floating-panel__canvas"></canvas>
+        </div>
+    </aside>
 
-            <!-- Detail View -->
-            <div id="zoomWindow" class="zoom-window-inline" style="display: none;">
-                <div class="zoom-window__header">
-                    <h3 class="zoom-window__title">Detail View</h3>
-                    <div class="zoom-window__coords" id="zoomCoords"></div>
-                    <div class="zoom-window__controls">
-                        <button id="zoomInBtn" class="zoom-control-btn" title="Zoom in (smaller area)" aria-label="Zoom in">+</button>
-                        <button id="zoomOutBtn" class="zoom-control-btn" title="Zoom out (larger area)" aria-label="Zoom out">−</button>
-                    </div>
-                </div>
-                <div class="zoom-window__map-container">
-                    <div id="zoomMap" class="zoom-window__map"></div>
-                    <canvas id="zoomCanvas" class="zoom-window__overlay"></canvas>
-                    <div id="zoomLoadingOverlay" class="zoom-window__loading-overlay" style="display: none;"></div>
-                </div>
+    <!-- Floating Horizontal Cross-Section Panel -->
+    <aside id="horizontalCrossSectionWindow" class="floating-panel floating-panel--horizontal" style="display: none;">
+        <div class="floating-panel__header">
+            <h3 class="floating-panel__title">Horizontal Cross-Section</h3>
+            <div class="floating-panel__info" id="horizontalCrossSectionInfo">
+                Azimuth vs. Range
             </div>
-
-            <!-- Vertical Cross-Section View -->
-            <div id="crossSectionWindow" class="cross-section-window" style="display: none;">
-                <div class="cross-section-window__header">
-                    <h3 class="cross-section-window__title">Vertical Cross-Section</h3>
-                    <div class="cross-section-window__info" id="crossSectionInfo">
-                        Click and drag on the map
-                    </div>
-                </div>
-                <div class="cross-section-window__canvas-container">
-                    <canvas id="crossSectionCanvas" class="cross-section-window__canvas"></canvas>
-                </div>
-            </div>
-
-            <!-- Horizontal Cross-Section View -->
-            <div id="horizontalCrossSectionWindow" class="cross-section-window" style="display: none;">
-                <div class="cross-section-window__header">
-                    <h3 class="cross-section-window__title">Horizontal Cross-Section</h3>
-                    <div class="cross-section-window__info" id="horizontalCrossSectionInfo">
-                        Azimuth vs. Range
-                    </div>
-                </div>
-                <div class="cross-section-window__canvas-container">
-                    <canvas id="horizontalCrossSectionCanvas" class="cross-section-window__canvas"></canvas>
-                </div>
-            </div>
+        </div>
+        <div class="floating-panel__canvas-container">
+            <canvas id="horizontalCrossSectionCanvas" class="floating-panel__canvas"></canvas>
         </div>
     </aside>
 

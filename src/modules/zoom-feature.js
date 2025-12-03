@@ -702,16 +702,16 @@ function drawRadarOverlay(offset, radarData, centerLat, centerLng) {
     ctx.stroke();
 
     // Draw info overlay
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, canvasSize, 40);
+    // ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    // ctx.fillRect(0, 0, canvasSize, 40);
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(`Zoom Level: ±${offset}° lat/lng`, canvasSize / 2, 15);
+    // ctx.fillStyle = '#ffffff';
+    // ctx.font = 'bold 12px Arial';
+    // ctx.textAlign = 'center';
+    // ctx.fillText(`Zoom Level: ±${offset}° lat/lng`, canvasSize / 2, 15);
 
-    ctx.font = '11px Arial';
-    const latDegrees = offset * 2;
-    const kmApprox = latDegrees * 111; // Rough approximation: 1° ≈ 111km
-    ctx.fillText(`Coverage: ~${kmApprox.toFixed(1)} km`, canvasSize / 2, 30);
+    // ctx.font = '11px Arial';
+    // const latDegrees = offset * 2;
+    // const kmApprox = latDegrees * 111; // Rough approximation: 1° ≈ 111km
+    // ctx.fillText(`Coverage: ~${kmApprox.toFixed(1)} km`, canvasSize / 2, 30);
 }
