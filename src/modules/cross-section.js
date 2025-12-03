@@ -7,11 +7,12 @@ import { valueToRainbowColor } from './radar-display.js';
 
 // Cross-section state
 let crossSectionActive = false;
-let currentRadarData = null;
-let currentAzimuth = null;
-let currentScanIndex = null;
+let currentRange = null;
 let numRangeBins = 100;
-let cachedHorizontalData = null;
+
+// Arc cross-section configuration
+const ARC_HALF_WIDTH = 15; // ±15 degrees
+const ARC_MAX_HEIGHT = 10000; // 10 km fixed height
 
 /**
  * Calculate beam height above radar accounting for Earth curvature
@@ -293,13 +294,14 @@ function drawCrossSection(crossSectionData, canvas) {
 }
 
 /**
- * Update cross-section for a given azimuth
+ * Update cross-section for a given azimuth and range
  */
-export function updateCrossSection(radarData, azimuth) {
+export function updateCrossSection(radarData, azimuth, range = null) {
     if (!crossSectionActive || !radarData) return;
 
-    currentRadarData = radarData;
-    currentAzimuth = azimuth;
+    if (range !== null) {
+        currentRange = range;
+    }
 
     const canvas = document.getElementById('crossSectionCanvas');
     const infoDiv = document.getElementById('crossSectionInfo');
@@ -315,102 +317,109 @@ export function updateCrossSection(radarData, azimuth) {
     const crossSectionData = extractCrossSection(radarData, azimuth, numRangeBins);
     drawCrossSection(crossSectionData, canvas);
 
-    // Update horizontal cross-section with highlighted azimuth
-    updateHorizontalCrossSectionWithAzimuth(radarData, azimuth);
+    // Update arc cross-section if we have a range
+    if (currentRange !== null) {
+        updateArcCrossSection(radarData, azimuth, currentRange);
+    }
 }
 
 /**
- * Update horizontal cross-section with highlighted azimuth
+ * Update arc cross-section with current azimuth and range
  */
-function updateHorizontalCrossSectionWithAzimuth(radarData, azimuth) {
-    if (!crossSectionActive || !radarData || currentScanIndex === null) return;
+function updateArcCrossSection(radarData, azimuth, range) {
+    if (!crossSectionActive || !radarData) return;
 
     const canvas = document.getElementById('horizontalCrossSectionCanvas');
+    const infoDiv = document.getElementById('arcCrossSectionInfo');
     if (!canvas) return;
 
-    // Use cached data if available, otherwise extract
-    if (!cachedHorizontalData) {
-        cachedHorizontalData = extractHorizontalCrossSection(radarData, currentScanIndex, 360, 100);
+    // Update info display
+    if (infoDiv) {
+        infoDiv.textContent = `Range: ${(range / 1000).toFixed(2)} km`;
     }
 
-    // Draw with highlight
-    drawHorizontalCrossSection(cachedHorizontalData, canvas, azimuth);
+    // Extract and draw arc cross-section
+    const arcData = extractArcCrossSection(radarData, azimuth, range);
+    drawArcCrossSection(arcData, canvas, azimuth);
 }
 
 /**
- * Extract horizontal cross-section data (all azimuths at all ranges) for current scan only
+ * Extract arc cross-section data (±15° arc at a specific range, all elevations)
+ * Shows height vs azimuth offset at a fixed range
  */
-function extractHorizontalCrossSection(radarData, scanIndex, azimuthBins = 360, rangeBins = 100) {
+function extractArcCrossSection(radarData, targetAzimuth, targetRange) {
     const nexradFile = radarData.nexradFile;
     const results = {
-        azimuths: [],
-        ranges: [],
-        data: [],
-        effectiveMaxRange: 0
+        azimuthOffsets: [],  // -15 to +15 degrees
+        elevations: [],
+        data: [],  // 2D array: [azimuthOffset][elevation] = value
+        centerAzimuth: targetAzimuth,
+        targetRange: targetRange
     };
 
-    const scanInfo = nexradFile.scan_info([scanIndex])[0];
+    const azimuthBins = 31; // -15 to +15 in 1-degree steps
 
-    // Check if scan has reflectivity data
-    if (!scanInfo.moments.includes('REF')) {
-        return results;
+    // Initialize azimuth offsets (-15 to +15)
+    for (let i = 0; i < azimuthBins; i++) {
+        results.azimuthOffsets.push(i - ARC_HALF_WIDTH);
+        results.data.push([]);
     }
 
-    const azimuths = nexradFile.get_azimuth_angles([scanIndex]);
-    const ranges = nexradFile.get_range(scanIndex, 'REF');
-    const refData = nexradFile.get_data('REF', scanInfo.ngates.REF, [scanIndex], false);
+    // Iterate through each elevation scan to build height dimension
+    for (let scanIdx = 0; scanIdx < nexradFile.nscans; scanIdx++) {
+        const scanInfo = nexradFile.scan_info([scanIdx])[0];
 
-    const maxRange = ranges[ranges.length - 1];
+        // Skip if no reflectivity data
+        if (!scanInfo.moments.includes('REF')) continue;
 
-    // Find furthest non-null data point
-    let effectiveMaxRange = 0;
-    for (let ray = 0; ray < scanInfo.nrays; ray++) {
-        for (let gate = ranges.length - 1; gate >= 0; gate--) {
-            const value = refData[ray][gate];
-            if (value !== null && value !== undefined && !isNaN(value)) {
-                effectiveMaxRange = Math.max(effectiveMaxRange, ranges[gate]);
-                break;
+        const azimuths = nexradFile.get_azimuth_angles([scanIdx]);
+        const ranges = nexradFile.get_range(scanIdx, 'REF');
+        const refData = nexradFile.get_data('REF', scanInfo.ngates.REF, [scanIdx], false);
+        const elevAngle = nexradFile.radialRecords[nexradFile.scans[scanIdx].indices[0]].msg_header.elevation_angle;
+
+        // Calculate height at target range for this elevation
+        const height = calculateBeamHeight(targetRange, elevAngle);
+
+        // Skip if height exceeds our display range
+        if (height > ARC_MAX_HEIGHT) continue;
+
+        results.elevations.push({ angle: elevAngle, height: height, scanIdx: scanIdx });
+
+        // Find the range gate closest to target range
+        let closestGateIdx = 0;
+        let minRangeDiff = Infinity;
+        for (let gateIdx = 0; gateIdx < ranges.length; gateIdx++) {
+            const diff = Math.abs(ranges[gateIdx] - targetRange);
+            if (diff < minRangeDiff) {
+                minRangeDiff = diff;
+                closestGateIdx = gateIdx;
             }
         }
-    }
 
-    effectiveMaxRange = effectiveMaxRange > 0 ? effectiveMaxRange * 1.05 : maxRange;
-    results.effectiveMaxRange = effectiveMaxRange;
+        // For each azimuth offset bin, find the closest radial and get value
+        for (let azBinIdx = 0; azBinIdx < azimuthBins; azBinIdx++) {
+            const azOffset = results.azimuthOffsets[azBinIdx];
+            let targetAz = targetAzimuth + azOffset;
 
-    const azimuthBinSize = 360 / azimuthBins;
-    const rangeBinSize = effectiveMaxRange / rangeBins;
+            // Normalize to 0-360
+            if (targetAz < 0) targetAz += 360;
+            if (targetAz >= 360) targetAz -= 360;
 
-    // Initialize 2D array for data (azimuth x range)
-    for (let azBin = 0; azBin < azimuthBins; azBin++) {
-        results.azimuths.push((azBin + 0.5) * azimuthBinSize);
-        results.data.push(new Array(rangeBins).fill(null));
-    }
-
-    for (let rangeBin = 0; rangeBin < rangeBins; rangeBin++) {
-        results.ranges.push((rangeBin + 0.5) * rangeBinSize);
-    }
-
-    // Fill in data for current scan only
-    for (let ray = 0; ray < azimuths.length; ray++) {
-        const azimuth = azimuths[ray];
-        const azBin = Math.floor(azimuth / azimuthBinSize);
-
-        if (azBin < 0 || azBin >= azimuthBins) continue;
-
-        for (let gate = 0; gate < ranges.length; gate++) {
-            const range = ranges[gate];
-            const rangeBin = Math.floor(range / rangeBinSize);
-
-            if (rangeBin < 0 || rangeBin >= rangeBins) continue;
-
-            const value = refData[ray][gate];
-            if (value !== null && value !== undefined && !isNaN(value)) {
-                // Take maximum value within this bin
-                const currentMax = results.data[azBin][rangeBin];
-                if (currentMax === null || value > currentMax) {
-                    results.data[azBin][rangeBin] = value;
+            // Find closest radial to this azimuth
+            let closestRayIdx = 0;
+            let minAzDiff = 360;
+            for (let rayIdx = 0; rayIdx < azimuths.length; rayIdx++) {
+                let diff = Math.abs(azimuths[rayIdx] - targetAz);
+                if (diff > 180) diff = 360 - diff;
+                if (diff < minAzDiff) {
+                    minAzDiff = diff;
+                    closestRayIdx = rayIdx;
                 }
             }
+
+            // Get value at this azimuth and range
+            const value = refData[closestRayIdx][closestGateIdx];
+            results.data[azBinIdx].push(value);
         }
     }
 
@@ -418,9 +427,11 @@ function extractHorizontalCrossSection(radarData, scanIndex, azimuthBins = 360, 
 }
 
 /**
- * Draw horizontal cross-section on canvas
+ * Draw arc cross-section on canvas
+ * X-axis: azimuth offset (-15° to +15°)
+ * Y-axis: height (0 to max elevation height)
  */
-function drawHorizontalCrossSection(horizontalData, canvas, highlightAzimuth = null) {
+function drawArcCrossSection(arcData, canvas, centerAzimuth) {
     const ctx = canvas.getContext('2d');
     const canvasWidth = 330;
     const canvasHeight = 300;
@@ -434,9 +445,9 @@ function drawHorizontalCrossSection(horizontalData, canvas, highlightAzimuth = n
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-    const { azimuths, ranges, data, effectiveMaxRange } = horizontalData;
+    const { azimuthOffsets, elevations, data } = arcData;
 
-    if (azimuths.length === 0 || ranges.length === 0) {
+    if (elevations.length === 0 || azimuthOffsets.length === 0) {
         ctx.fillStyle = '#666';
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
@@ -445,31 +456,65 @@ function drawHorizontalCrossSection(horizontalData, canvas, highlightAzimuth = n
     }
 
     // Margins
-    const leftMargin = 60;
-    const rightMargin = 20;
+    const leftMargin = 20;
+    const rightMargin = 60;
     const topMargin = 20;
     const bottomMargin = 40;
 
     const plotWidth = canvasWidth - leftMargin - rightMargin;
     const plotHeight = canvasHeight - topMargin - bottomMargin;
 
-    const maxRange = effectiveMaxRange || ranges[ranges.length - 1];
+    // Sort elevations by height for proper drawing order
+    const sortedElevations = [...elevations].sort((a, b) => a.height - b.height);
 
-    // Draw heatmap
-    const azBinWidth = plotWidth / azimuths.length;
-    const rangeBinHeight = plotHeight / ranges.length;
+    // Calculate max height from topmost elevation (add 10% margin)
+    const topElevHeight = sortedElevations[sortedElevations.length - 1].height;
+    const maxHeight = topElevHeight * 1.1;
 
-    for (let azIdx = 0; azIdx < azimuths.length; azIdx++) {
-        for (let rangeIdx = 0; rangeIdx < ranges.length; rangeIdx++) {
-            const value = data[azIdx][rangeIdx];
-            if (value === null) continue;
+    // Calculate scales
+    const azScale = plotWidth / (ARC_HALF_WIDTH * 2); // 30 degree span
+    const heightScale = plotHeight / maxHeight;
 
-            const x = leftMargin + azIdx * azBinWidth;
-            const y = canvasHeight - bottomMargin - (rangeIdx + 1) * rangeBinHeight;
+    // Draw data points - interpolate between elevation heights
+    for (let azIdx = 0; azIdx < azimuthOffsets.length; azIdx++) {
+        const azOffset = azimuthOffsets[azIdx];
+        const x = leftMargin + (azOffset + ARC_HALF_WIDTH) * azScale;
+
+        // For each pair of adjacent elevations, draw a colored rectangle
+        for (let elevIdx = 0; elevIdx < sortedElevations.length; elevIdx++) {
+            const elev = sortedElevations[elevIdx];
+            const origElevIdx = elevations.findIndex(e => e.scanIdx === elev.scanIdx);
+            const value = data[azIdx][origElevIdx];
+
+            if (value === null || value === undefined) continue;
+
+            // Calculate height band for this elevation
+            const height = elev.height;
+            let heightTop, heightBottom;
+
+            if (elevIdx === 0) {
+                // First elevation - extend down to 0
+                heightBottom = 0;
+                heightTop = elevIdx < sortedElevations.length - 1
+                    ? (height + sortedElevations[elevIdx + 1].height) / 2
+                    : height * 1.2;
+            } else if (elevIdx === sortedElevations.length - 1) {
+                // Last elevation - extend up slightly
+                heightBottom = (height + sortedElevations[elevIdx - 1].height) / 2;
+                heightTop = Math.min(height * 1.1, maxHeight);
+            } else {
+                // Middle elevations
+                heightBottom = (height + sortedElevations[elevIdx - 1].height) / 2;
+                heightTop = (height + sortedElevations[elevIdx + 1].height) / 2;
+            }
+
+            const yTop = canvasHeight - bottomMargin - heightTop * heightScale;
+            const yBottom = canvasHeight - bottomMargin - heightBottom * heightScale;
+            const rectHeight = yBottom - yTop;
 
             const color = valueToRainbowColor(value);
             ctx.fillStyle = color;
-            ctx.fillRect(x, y, Math.ceil(azBinWidth) + 1, Math.ceil(rangeBinHeight) + 1);
+            ctx.fillRect(x - azScale / 2, yTop, azScale + 1, rectHeight + 1);
         }
     }
 
@@ -477,31 +522,43 @@ function drawHorizontalCrossSection(horizontalData, canvas, highlightAzimuth = n
     ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
     ctx.lineWidth = 0.5;
 
-    // Vertical grid lines (every 45°)
-    for (let az = 0; az <= 360; az += 45) {
-        const x = leftMargin + (az / 360) * plotWidth;
+    // Vertical grid lines (every 5°)
+    for (let az = -ARC_HALF_WIDTH; az <= ARC_HALF_WIDTH; az += 5) {
+        const x = leftMargin + (az + ARC_HALF_WIDTH) * azScale;
         ctx.beginPath();
         ctx.moveTo(x, topMargin);
         ctx.lineTo(x, canvasHeight - bottomMargin);
         ctx.stroke();
     }
 
-    // Horizontal grid lines (every 50km)
-    for (let r = 0; r <= maxRange; r += 50000) {
-        const y = canvasHeight - bottomMargin - (r / maxRange) * plotHeight;
+    // Calculate appropriate height grid interval based on max height
+    const heightGridInterval = maxHeight > 8000 ? 2000 : (maxHeight > 4000 ? 1000 : 500);
+
+    // Horizontal grid lines
+    for (let h = 0; h <= maxHeight; h += heightGridInterval) {
+        const y = canvasHeight - bottomMargin - h * heightScale;
         ctx.beginPath();
         ctx.moveTo(leftMargin, y);
         ctx.lineTo(canvasWidth - rightMargin, y);
         ctx.stroke();
     }
 
+    // Draw center line (current azimuth)
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.lineWidth = 2;
+    const centerX = leftMargin + ARC_HALF_WIDTH * azScale;
+    ctx.beginPath();
+    ctx.moveTo(centerX, topMargin);
+    ctx.lineTo(centerX, canvasHeight - bottomMargin);
+    ctx.stroke();
+
     // Draw axes
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(leftMargin, topMargin);
-    ctx.lineTo(leftMargin, canvasHeight - bottomMargin);
+    ctx.moveTo(leftMargin, canvasHeight - bottomMargin);
     ctx.lineTo(canvasWidth - rightMargin, canvasHeight - bottomMargin);
+    ctx.lineTo(canvasWidth - rightMargin, topMargin);
     ctx.stroke();
 
     // Draw labels
@@ -509,80 +566,46 @@ function drawHorizontalCrossSection(horizontalData, canvas, highlightAzimuth = n
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
 
-    // X-axis labels (azimuth in degrees)
-    for (let az = 0; az <= 360; az += 45) {
-        const x = leftMargin + (az / 360) * plotWidth;
+    // X-axis labels (azimuth offset)
+    for (let az = -ARC_HALF_WIDTH; az <= ARC_HALF_WIDTH; az += 5) {
+        const x = leftMargin + (az + ARC_HALF_WIDTH) * azScale;
         const y = canvasHeight - bottomMargin + 20;
-        ctx.fillText(`${az}°`, x, y);
+        // Show actual azimuth values
+        let actualAz = centerAzimuth + az;
+        if (actualAz < 0) actualAz += 360;
+        if (actualAz >= 360) actualAz -= 360;
+        ctx.fillText(`${actualAz.toFixed(0)}°`, x, y);
     }
 
-    // X-axis title
+    // X-axis title with center azimuth indicator
     ctx.font = 'bold 13px Arial';
-    ctx.fillText('Azimuth (degrees)', canvasWidth / 2, canvasHeight - 5);
+    ctx.fillText(`Azimuth (${centerAzimuth.toFixed(1)}° ± ${ARC_HALF_WIDTH}°)`, canvasWidth / 2, canvasHeight - 5);
 
-    // Y-axis labels (range in km)
+    // Y-axis labels (height in km) - on the right
     ctx.font = '12px Arial';
-    ctx.textAlign = 'right';
-    for (let r = 0; r <= maxRange; r += 50000) {
-        const x = leftMargin - 10;
-        const y = canvasHeight - bottomMargin - (r / maxRange) * plotHeight + 4;
-        ctx.fillText((r / 1000).toFixed(0), x, y);
+    ctx.textAlign = 'left';
+    for (let h = 0; h <= maxHeight; h += heightGridInterval) {
+        const x = canvasWidth - rightMargin + 10;
+        const y = canvasHeight - bottomMargin - h * heightScale + 4;
+        ctx.fillText((h / 1000).toFixed(1), x, y);
     }
 
-    // Y-axis title
+    // Y-axis title - on the right
     ctx.save();
-    ctx.translate(15, canvasHeight / 2);
-    ctx.rotate(-Math.PI / 2);
+    ctx.translate(canvasWidth - 15, canvasHeight / 2);
+    ctx.rotate(Math.PI / 2);
     ctx.font = 'bold 13px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Range (km)', 0, 0);
+    ctx.fillText('Height (km)', 0, 0);
     ctx.restore();
-
-    // Draw highlight line for current azimuth if provided
-    if (highlightAzimuth !== null) {
-        const x = leftMargin + (highlightAzimuth / 360) * plotWidth;
-        ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x, topMargin);
-        ctx.lineTo(x, canvasHeight - bottomMargin);
-        ctx.stroke();
-
-        // Draw azimuth label at the top
-        ctx.fillStyle = 'rgba(255, 255, 0, 1)';
-        ctx.font = 'bold 11px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${highlightAzimuth.toFixed(1)}°`, x, topMargin - 5);
-    }
-}
-
-/**
- * Update horizontal cross-section
- */
-export function updateHorizontalCrossSection(radarData, scanIndex) {
-    if (!crossSectionActive || !radarData || scanIndex === null || scanIndex === undefined) return;
-
-    const canvas = document.getElementById('horizontalCrossSectionCanvas');
-    if (!canvas) return;
-
-    // Store scan index
-    currentScanIndex = scanIndex;
-
-    // Extract and cache data, then draw
-    cachedHorizontalData = extractHorizontalCrossSection(radarData, scanIndex, 360, 100);
-    drawHorizontalCrossSection(cachedHorizontalData, canvas);
 }
 
 /**
  * Enable cross-section feature
  */
-export function enableCrossSection(radarData, scanIndex) {
+export function enableCrossSection() {
     crossSectionActive = true;
-    currentRadarData = radarData;
-    currentScanIndex = scanIndex;
-
-    // Clear cache to ensure fresh data on scan change
-    cachedHorizontalData = null;
+    currentRange = null;
 
     // Show cross-section windows
     const crossSectionWindow = document.getElementById('crossSectionWindow');
@@ -595,9 +618,6 @@ export function enableCrossSection(radarData, scanIndex) {
         horizontalCrossSectionWindow.style.display = 'block';
     }
 
-    // Draw initial horizontal cross-section
-    updateHorizontalCrossSection(radarData, scanIndex);
-
     console.log('Cross-section feature enabled');
 }
 
@@ -606,10 +626,7 @@ export function enableCrossSection(radarData, scanIndex) {
  */
 export function disableCrossSection() {
     crossSectionActive = false;
-    currentRadarData = null;
-    currentAzimuth = null;
-    currentScanIndex = null;
-    cachedHorizontalData = null;  // Clear cache
+    currentRange = null;
 
     // Hide cross-section windows
     const crossSectionWindow = document.getElementById('crossSectionWindow');

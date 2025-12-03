@@ -224,13 +224,15 @@
 
     <!-- Floating Detail View Panel -->
     <aside id="zoomWindow" class="floating-panel floating-panel--zoom" style="display: none;">
-        <div class="floating-panel__header">
-            <h3 class="floating-panel__title">Detail View</h3>
-            <div class="floating-panel__coords" id="zoomCoords"></div>
-            <div class="floating-panel__controls">
-                <button id="zoomInBtn" class="zoom-control-btn" title="Zoom in (smaller area)" aria-label="Zoom in">+</button>
-                <button id="zoomOutBtn" class="zoom-control-btn" title="Zoom out (larger area)" aria-label="Zoom out">−</button>
+        <div class="floating-panel__header floating-panel__header--zoom">
+            <div class="floating-panel__header-row">
+                <h3 class="floating-panel__title">Detail View</h3>
+                <div class="floating-panel__controls">
+                    <button id="zoomInBtn" class="zoom-control-btn" title="Zoom in (smaller area)" aria-label="Zoom in">+</button>
+                    <button id="zoomOutBtn" class="zoom-control-btn" title="Zoom out (larger area)" aria-label="Zoom out">−</button>
+                </div>
             </div>
+            <div class="floating-panel__coords" id="zoomCoords"></div>
         </div>
         <div class="floating-panel__map-container">
             <div id="zoomMap" class="floating-panel__map"></div>
@@ -252,12 +254,12 @@
         </div>
     </aside>
 
-    <!-- Floating Horizontal Cross-Section Panel -->
+    <!-- Floating Arc Cross-Section Panel -->
     <aside id="horizontalCrossSectionWindow" class="floating-panel floating-panel--horizontal" style="display: none;">
         <div class="floating-panel__header">
-            <h3 class="floating-panel__title">Horizontal Cross-Section</h3>
-            <div class="floating-panel__info" id="horizontalCrossSectionInfo">
-                Azimuth vs. Range
+            <h3 class="floating-panel__title">Arc Cross-Section</h3>
+            <div class="floating-panel__info" id="arcCrossSectionInfo">
+                Height vs. Azimuth (±15°)
             </div>
         </div>
         <div class="floating-panel__canvas-container">

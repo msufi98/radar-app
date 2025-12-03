@@ -10,6 +10,7 @@ import { updateCrossSection } from './cross-section.js';
 // Zoom feature state
 let hoverRectangle = null;
 let hoverRay = null;
+let hoverArc = null;
 let isMouseOverRadar = false;
 let isDragging = false;
 let currentHoverLatLng = null;
@@ -193,8 +194,8 @@ export function enableZoomFeature(radarData, effectiveRange = null) {
             currentHoverLatLng = latLng;
             // Update indicators and cross-section immediately on click
             updateHoverIndicators(latLng, radarCenter, radarData, true);
-            const { bearing: azimuth } = calculateDistanceAndBearing(radarCenter, latLng);
-            updateCrossSection(radarData, azimuth);
+            const { bearing: azimuth, distance: range } = calculateDistanceAndBearing(radarCenter, latLng);
+            updateCrossSection(radarData, azimuth, range);
         }
     });
 
@@ -209,8 +210,8 @@ export function enableZoomFeature(radarData, effectiveRange = null) {
             // Update visual indicators (box and ray) in real-time - no throttling
             updateHoverIndicators(latLng, radarCenter, radarData, true);
             // Update cross-section during drag in real-time
-            const { bearing: azimuth } = calculateDistanceAndBearing(radarCenter, latLng);
-            updateCrossSection(radarData, azimuth);
+            const { bearing: azimuth, distance: range } = calculateDistanceAndBearing(radarCenter, latLng);
+            updateCrossSection(radarData, azimuth, range);
         }
     });
 
@@ -414,6 +415,52 @@ function updateHoverIndicators(latLng, radarCenter, radarData, forceImmediate = 
             zIndex: 2
         });
     }
+
+    // Update arc showing ±15° viewing area
+    const { distance: range } = calculateDistanceAndBearing(radarCenter, latLng);
+    const arcPoints = generateArcPoints(radarCenter, range, azimuth, 15, 31);
+
+    if (hoverArc) {
+        hoverArc.setPath(arcPoints);
+    } else {
+        hoverArc = new google.maps.Polyline({
+            path: arcPoints,
+            strokeColor: '#000000',
+            strokeOpacity: 0.6,
+            strokeWeight: 2,
+            map: map,
+            clickable: false,
+            zIndex: 2
+        });
+    }
+}
+
+/**
+ * Generate points for an arc centered at a location
+ * @param {Object} center - Center point {lat, lng}
+ * @param {number} radius - Radius in meters
+ * @param {number} centerAzimuth - Center azimuth in degrees
+ * @param {number} halfWidth - Half-width of arc in degrees
+ * @param {number} numPoints - Number of points to generate
+ * @returns {Array} Array of {lat, lng} points
+ */
+function generateArcPoints(center, radius, centerAzimuth, halfWidth, numPoints) {
+    const points = [];
+    const startAzimuth = centerAzimuth - halfWidth;
+    const endAzimuth = centerAzimuth + halfWidth;
+    const step = (endAzimuth - startAzimuth) / (numPoints - 1);
+
+    for (let i = 0; i < numPoints; i++) {
+        let azimuth = startAzimuth + i * step;
+        // Normalize azimuth to 0-360
+        if (azimuth < 0) azimuth += 360;
+        if (azimuth >= 360) azimuth -= 360;
+
+        const point = calculateDestinationPoint(center, radius, azimuth);
+        points.push(point);
+    }
+
+    return points;
 }
 
 /**
@@ -427,6 +474,10 @@ function clearHoverIndicators() {
     if (hoverRay) {
         hoverRay.setMap(null);
         hoverRay = null;
+    }
+    if (hoverArc) {
+        hoverArc.setMap(null);
+        hoverArc = null;
     }
 }
 
@@ -474,7 +525,7 @@ function updateZoomWindow(latLng, radarData, forceImmediate = false) {
     const offset = ZOOM_LEVELS[currentZoomLevelIndex];
 
     // Update coordinates display (lightweight operation - do immediately)
-    coordsDiv.textContent = `${latLng.lat.toFixed(4)}°, ${latLng.lng.toFixed(4)}° | ${(range / 1000).toFixed(1)} km | Az: ${azimuth.toFixed(1)}° | Zoom: ±${offset}°`;
+    coordsDiv.textContent = `${latLng.lat.toFixed(4)}°, ${latLng.lng.toFixed(4)}° | ${(range / 1000).toFixed(1)} km | Zoom: ±${offset}°`;
 
     // Update zoom map bounds (lightweight operation - do immediately)
     const bounds = hoverRectangle.getBounds();

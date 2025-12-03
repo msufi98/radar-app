@@ -286,7 +286,7 @@ async function handleScanDisplay(scanIndex) {
         // Use global effective max range (across all scans) for hover ray
         const globalEffectiveRange = radarFileData.effectiveMaxRange || scanDetails.effectiveMaxRange;
         ZoomFeature.enableZoomFeature(radarFileData, globalEffectiveRange);
-        CrossSection.enableCrossSection(radarFileData, scanIndex);
+        CrossSection.enableCrossSection();
 
     } catch (error) {
         console.error('Error displaying radar heatmap:', error);

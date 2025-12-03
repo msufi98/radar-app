@@ -248,11 +248,6 @@ body {
    ============================================ */
 .accordion-section {
   margin-bottom: 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.accordion-section:last-child {
-  border-bottom: none;
 }
 
 .accordion-section--disabled,
@@ -1391,21 +1386,21 @@ body {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
 }
 
-/* Vertical Cross-Section - Bottom Right Corner */
+/* Vertical Cross-Section - Top Right Corner */
 .floating-panel--vertical {
-  bottom: var(--space-lg);
+  top: var(--space-lg);
   right: var(--space-lg);
 }
 
 /* Detail View (Zoom) - Left of Vertical Cross-Section */
 .floating-panel--zoom {
-  bottom: var(--space-lg);
+  top: var(--space-lg);
   right: calc(var(--space-lg) + 350px);
 }
 
-/* Horizontal Cross-Section - Above Vertical Cross-Section */
+/* Horizontal Cross-Section - Below Vertical Cross-Section */
 .floating-panel--horizontal {
-  bottom: calc(var(--space-lg) + 340px);
+  top: calc(var(--space-lg) + 380px);
   right: var(--space-lg);
 }
 
@@ -1413,6 +1408,10 @@ body {
   padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
 }
 
 .floating-panel__title {
@@ -1426,13 +1425,32 @@ body {
 .floating-panel__coords {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
-  margin-top: 2px;
+  flex: 1;
 }
 
 .floating-panel__controls {
   display: flex;
   gap: var(--space-xs);
-  margin-top: var(--space-xs);
+  flex-shrink: 0;
+}
+
+/* Zoom panel specific header layout */
+.floating-panel__header--zoom {
+  display: block;
+  width: 330px;
+}
+
+.floating-panel__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.floating-panel__header--zoom .floating-panel__coords {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
 }
 
 .floating-panel__canvas-container,
