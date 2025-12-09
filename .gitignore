@@ -37,3 +37,6 @@ nul
 # static resources
 image.png
 image2.png
+
+# Claude settings
+.claude/

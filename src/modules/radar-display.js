@@ -23,25 +23,25 @@ const RADAR_CONFIG = {
 function valueToRainbowColor(dbzValue) {
     // 7 color buckets based on absolute dBZ values (NEXRAD Level 3)
     if (dbzValue < 5) {
-        return 'rgb(0, 189, 250)'; // Light Cyan #00BDFA (< 5 dBZ)
+        return 'rgb(0, 160, 255)'; // Dark Blue #00008B (< 5 dBZ)
     }
     else if (dbzValue < 15) {
-        return 'rgb(0, 205, 231)'; // Cyan #00CDE7 (5-15 dBZ)
+        return 'rgb(0, 189, 250)'; // Light Cyan #00BDFA (5-15 dBZ)
     }
-    else if (dbzValue < 30) {
-        return 'rgb(0, 157, 0)'; // Green #009D00 (15-30 dBZ)
+    else if (dbzValue < 25) {
+        return 'rgb(0, 205, 231)'; // Cyan #00CDE7 (15-25 dBZ)
     }
-    else if (dbzValue < 40) {
-        return 'rgb(255, 255, 0)'; // Yellow #FFFF00 (30-40 dBZ)
+    else if (dbzValue < 35) {
+        return 'rgb(0, 157, 0)'; // Green #009D00 (25-35 dBZ)
     }
-    else if (dbzValue < 50) {
-        return 'rgb(254, 83, 0)'; // Orange-Red #FE5300 (40-50 dBZ)
+    else if (dbzValue < 45) {
+        return 'rgb(255, 255, 0)'; // Yellow #FFFF00 (35-45 dBZ)
     }
-    else if (dbzValue < 65) {
-        return 'rgb(228, 0, 127)'; // Magenta-Red #E4007F (50-65 dBZ)
+    else if (dbzValue < 55) {
+        return 'rgb(254, 83, 0)'; // Orange-Red #FE5300 (45-55 dBZ)
     }
     else {
-        return 'rgb(254, 254, 254)'; // White #FEFEFE (65+ dBZ)
+        return 'rgb(228, 0, 127)'; // Magenta #E4007F (55+ dBZ)
     }
 }
 
@@ -148,104 +148,71 @@ export async function displayRadarHeatmap(radarData, scanIndex) {
     const maxRange = effectiveMaxRange;
     const scale = (canvasSize / 2) / maxRange;
 
-    // Draw each radial
+    const centerX = canvasSize / 2;
+    const centerY = canvasSize / 2;
+
+    // Draw each radial segment as a wedge
     for (let ray = 0; ray < nrays; ray++) {
         const azimuth = azimuths[ray];
-        const azimuthRad = (azimuth - 90) * Math.PI / 180;
+
+        // Calculate angular width to fully cover between adjacent rays (no gaps)
+        const nextRay = (ray + 1) % nrays;
+        const prevRay = (ray - 1 + nrays) % nrays;
+
+        // Calculate half-width to previous ray
+        let toPrev = azimuth - azimuths[prevRay];
+        if (toPrev < -180) toPrev += 360;
+        if (toPrev > 180) toPrev -= 360;
+
+        // Calculate half-width to next ray
+        let toNext = azimuths[nextRay] - azimuth;
+        if (toNext < -180) toNext += 360;
+        if (toNext > 180) toNext -= 360;
+
+        const halfWidthPrev = Math.abs(toPrev) / 2;
+        const halfWidthNext = Math.abs(toNext) / 2;
+
+        // Convert to radians (subtract 90 to align with canvas coordinates)
+        const startAngle = (azimuth - halfWidthPrev - 90) * Math.PI / 180;
+        const endAngle = (azimuth + halfWidthNext - 90) * Math.PI / 180;
 
         for (let gate = 0; gate < ngates; gate++) {
             const range = ranges[gate];
 
             // Skip gates beyond effective range
             if (range > effectiveMaxRange) {
-                break; // No need to check further gates on this ray
+                break;
             }
 
             const val = refData[ray][gate];
 
+            // Only draw cells with valid data
             if (val === null || val === undefined || isNaN(val)) {
                 continue;
             }
 
-            // Use actual dBZ value for color mapping (not normalized)
-            const color = valueToRainbowColor(val);
-
-            const x = canvasSize / 2 + range * Math.cos(azimuthRad) * scale;
-            const y = canvasSize / 2 + range * Math.sin(azimuthRad) * scale;
-
+            // Calculate inner and outer radius
+            const innerRadius = range * scale;
             const nextRange = gate < ngates - 1 ? ranges[gate + 1] : range + (range - (gate > 0 ? ranges[gate - 1] : 0));
-            const gateWidth = (nextRange - range) * scale;
+            const outerRadius = nextRange * scale;
 
+            // Draw wedge segment
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, innerRadius, startAngle, endAngle);
+            ctx.arc(centerX, centerY, outerRadius, endAngle, startAngle, true);
+            ctx.closePath();
+
+            // Fill with color
+            const color = valueToRainbowColor(val);
             ctx.fillStyle = color;
             ctx.globalAlpha = RADAR_CONFIG.DATA_OPACITY;
+            ctx.fill();
 
-            // Progressive diffusion: increase cell size more as distance increases
-            // Near center: ~1.5x, Far out: ~2.5x
-            const distanceRatio = range / maxRange; // 0 at center, 1 at edge
-            const sizeMultiplier = 1.5 + (distanceRatio * 1.0); // 1.5 to 2.5
-            const size = Math.max(gateWidth * sizeMultiplier, 3);
-            ctx.fillRect(x - size / 2, y - size / 2, size, size);
-        }
-    }
-
-    ctx.globalAlpha = 1.0;
-
-    // Apply progressive blur based on distance from center
-    // Create a temporary canvas for blur processing
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = canvas.width;
-    tempCanvas.height = canvas.height;
-    const tempCtx = tempCanvas.getContext('2d');
-
-    // Copy current canvas to temp
-    tempCtx.drawImage(canvas, 0, 0);
-
-    // Clear original canvas
-    ctx.clearRect(0, 0, canvasSize, canvasSize);
-
-    // Define distance-based blur zones (in meters from center to edge)
-    // Supporting up to 800 km range
-    const blurZones = [
-        { maxDistance: 50000, blur: 0.25 },   // 0-50 km: minimal blur
-        { maxDistance: 100000, blur: 0.5 },   // 50-100 km: light blur
-        { maxDistance: 200000, blur: 0.75 },  // 100-200 km: medium blur
-        { maxDistance: 400000, blur: 1.25 },  // 200-400 km: heavier blur
-        { maxDistance: 800000, blur: 2.0 }    // 400-800 km: maximum blur
-    ];
-
-    // Apply progressive blur using radial masks
-    for (const zone of blurZones) {
-        // Create a radial gradient mask
-        const maskCanvas = document.createElement('canvas');
-        maskCanvas.width = canvasSize;
-        maskCanvas.height = canvasSize;
-        const maskCtx = maskCanvas.getContext('2d');
-
-        const centerX = canvasSize / 2;
-        const centerY = canvasSize / 2;
-
-        // Calculate radius based on actual distance (capped at maxRange)
-        const effectiveDistance = Math.min(zone.maxDistance, maxRange);
-        const radius = (canvasSize / 2) * (effectiveDistance / maxRange);
-
-        // Draw the data with blur
-        maskCtx.filter = `blur(${zone.blur}px)`;
-        maskCtx.drawImage(tempCanvas, 0, 0);
-        maskCtx.filter = 'none';
-
-        // Create circular mask to only show this zone
-        maskCtx.globalCompositeOperation = 'destination-in';
-        maskCtx.beginPath();
-        maskCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-        maskCtx.fillStyle = '#ffffff';
-        maskCtx.fill();
-
-        // Draw the masked blur layer onto main canvas
-        ctx.drawImage(maskCanvas, 0, 0);
-
-        // If we've reached or exceeded maxRange, no need to process further zones
-        if (zone.maxDistance >= maxRange) {
-            break;
+            // Draw border
+            ctx.strokeStyle = 'rgba(100, 100, 100, 0.25)';
+            ctx.lineWidth = 0.5;
+            ctx.globalAlpha = 1.0;
+            ctx.stroke();
         }
     }
 

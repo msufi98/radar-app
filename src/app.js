@@ -240,8 +240,7 @@ async function loadRadarData() {
         MapManager.createRangeRings(radarCenter, displayRange, 5);
         MapManager.createCrosshair(radarCenter, displayRange);
 
-        // Show map controls and disable map dragging
-        MapManager.showMapControls();
+        // Disable map dragging (controls shown when scan is displayed)
         MapManager.disableMapDragging();
 
         // Remove loading marker
@@ -283,6 +282,7 @@ async function handleScanDisplay(scanIndex) {
 
         UIController.updateScanInfoCard(scanDetails);
         RadarDisplay.updateLegend(scanDetails.minVal, scanDetails.maxVal);
+        MapManager.showMapControls();
         // Use global effective max range (across all scans) for hover ray
         const globalEffectiveRange = radarFileData.effectiveMaxRange || scanDetails.effectiveMaxRange;
         ZoomFeature.enableZoomFeature(radarFileData, globalEffectiveRange);

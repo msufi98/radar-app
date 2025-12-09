@@ -418,7 +418,7 @@ function updateHoverIndicators(latLng, radarCenter, radarData, forceImmediate = 
 
     // Update arc showing ±15° viewing area
     const { distance: range } = calculateDistanceAndBearing(radarCenter, latLng);
-    const arcPoints = generateArcPoints(radarCenter, range, azimuth, 15, 31);
+    const arcPoints = generateArcPoints(radarCenter, range, azimuth, 15, 21);
 
     if (hoverArc) {
         hoverArc.setPath(arcPoints);
@@ -436,21 +436,22 @@ function updateHoverIndicators(latLng, radarCenter, radarData, forceImmediate = 
 }
 
 /**
- * Generate points for an arc centered at a location
+ * Generate points for an arc centered at a given azimuth
  * @param {Object} center - Center point {lat, lng}
  * @param {number} radius - Radius in meters
  * @param {number} centerAzimuth - Center azimuth in degrees
  * @param {number} halfWidth - Half-width of arc in degrees
- * @param {number} numPoints - Number of points to generate
+ * @param {number} numArcPoints - Number of points on the arc
  * @returns {Array} Array of {lat, lng} points
  */
-function generateArcPoints(center, radius, centerAzimuth, halfWidth, numPoints) {
+function generateArcPoints(center, radius, centerAzimuth, halfWidth, numArcPoints) {
     const points = [];
     const startAzimuth = centerAzimuth - halfWidth;
     const endAzimuth = centerAzimuth + halfWidth;
-    const step = (endAzimuth - startAzimuth) / (numPoints - 1);
+    const step = (endAzimuth - startAzimuth) / (numArcPoints - 1);
 
-    for (let i = 0; i < numPoints; i++) {
+    // Generate arc points only (no lines to/from center)
+    for (let i = 0; i < numArcPoints; i++) {
         let azimuth = startAzimuth + i * step;
         // Normalize azimuth to 0-360
         if (azimuth < 0) azimuth += 360;
@@ -645,7 +646,7 @@ function drawRadialSegment(ctx, radarCenter, centerLat, centerLng, offset, canva
     }
 
     // Draw thin gray border
-    ctx.strokeStyle = 'rgba(128, 128, 128, 0.3)';
+    ctx.strokeStyle = 'rgba(100, 100, 100, 0.25)';
     ctx.lineWidth = 0.5;
     ctx.stroke();
 }
